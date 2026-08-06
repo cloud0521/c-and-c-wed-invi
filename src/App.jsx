@@ -93,6 +93,7 @@ export default function App() {
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
   const [dashboardRows, setDashboardRows] = useState([]);
   const [loadedImageCount, setLoadedImageCount] = useState(0);
+  const [loadedImageSources, setLoadedImageSources] = useState(() => new Set());
   
   // RSVP Form States
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
@@ -143,7 +144,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (galleryMode !== 'stack' || shouldReduceMotion || window.matchMedia('(max-width: 767px)').matches) return undefined;
+    if (galleryMode !== 'stack' || shouldReduceMotion) return undefined;
 
     const intervalId = window.setInterval(() => {
       setActiveGalleryIndex((currentIndex) => (currentIndex + 1) % galleryPhotos.length);
@@ -209,12 +210,20 @@ export default function App() {
     const preloadImage = (source) => new Promise((resolve) => {
       const image = new Image();
       let isSettled = false;
-      const finish = () => {
+      const finish = (didLoad = false) => {
         if (isSettled) return;
         isSettled = true;
         window.clearTimeout(timeoutId);
         imageTimeoutIds.delete(timeoutId);
         if (!isCancelled) setLoadedImageCount((count) => count + 1);
+        if (didLoad && !isCancelled) {
+          setLoadedImageSources((sources) => {
+            if (sources.has(source)) return sources;
+            const nextSources = new Set(sources);
+            nextSources.add(source);
+            return nextSources;
+          });
+        }
         resolve();
       };
 
@@ -222,11 +231,11 @@ export default function App() {
       // image is sufficient here, and this timeout guarantees the opening never traps a guest.
       const timeoutId = window.setTimeout(finish, 8000);
       imageTimeoutIds.add(timeoutId);
-      image.onload = finish;
-      image.onerror = finish;
+      image.onload = () => finish(true);
+      image.onerror = () => finish(false);
       image.decoding = 'async';
       image.src = source;
-      if (image.complete) finish();
+      if (image.complete) finish(image.naturalWidth > 0);
     });
 
     Promise.all(experienceImageAssets.map(preloadImage)).then(() => {
@@ -868,6 +877,7 @@ export default function App() {
                 >
                   {stackedGalleryPhotos.map((photo) => {
                     const rotation = photo.stackPosition === 1 ? -5 : photo.stackPosition === 2 ? 6 : 0;
+                    const isPhotoLoaded = loadedImageSources.has(photo.img);
                     return (
                       <motion.div
                         key={photo.caption}
@@ -882,7 +892,12 @@ export default function App() {
                         style={{ zIndex: galleryPhotos.length - photo.stackPosition }}
                         className="absolute inset-0 transform-gpu overflow-hidden rounded-[1.75rem] border border-[#C48C78]/35 bg-[#451822] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.38)] [backface-visibility:hidden] will-change-transform"
                       >
-                        <img src={photo.img} alt={photo.caption} draggable="false" className="h-full w-full rounded-[1.35rem] object-cover [backface-visibility:hidden]" />
+                        {!isPhotoLoaded && (
+                          <div className="absolute inset-2 flex items-center justify-center rounded-[1.35rem] bg-[linear-gradient(135deg,#2A0D14,#5A2430,#2A0D14)] p-6 text-center">
+                            <span className="font-sans text-[9px] uppercase tracking-[0.24em] text-[#D4B8BC]">Preparing photograph</span>
+                          </div>
+                        )}
+                        <img src={photo.img} alt={photo.caption} draggable="false" onLoad={() => setLoadedImageSources((sources) => sources.has(photo.img) ? sources : new Set(sources).add(photo.img))} className={`relative h-full w-full rounded-[1.35rem] object-cover transition-opacity duration-700 [backface-visibility:hidden] ${isPhotoLoaded ? 'opacity-100' : 'opacity-0'}`} />
                         {photo.stackPosition === 0 && (
                           <div className="absolute inset-x-2 bottom-2 rounded-b-[1.35rem] bg-gradient-to-t from-[#2A0D14]/90 via-[#2A0D14]/30 to-transparent px-5 pb-5 pt-12">
                             <p className="font-serif text-lg text-[#F3E5E8]">{photo.caption}</p>
