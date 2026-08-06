@@ -10,7 +10,7 @@ import p3 from './assets/p3.jpg';
 import churchVenue from './assets/our-lady-of-salvation-parish.jpg';
 import receptionVenue from './assets/fc-reception.jpg';
 import CoordinatorMode from './components/dashboard/CoordinatorMode';
-import { supabase } from './lib/supabase';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 const RSVPDashboard = lazy(() => import('./components/dashboard/RSVPDashboard'));
 
@@ -228,7 +228,7 @@ export default function App() {
 
     Promise.all(experienceImageAssets.map(preloadImage)).then(() => {
       if (isCancelled) return;
-      const remainingVerseTime = Math.max(0, 2400 - (Date.now() - startedAt));
+      const remainingVerseTime = Math.max(0, 5000 - (Date.now() - startedAt));
       transitionTimeoutId = window.setTimeout(() => {
         if (!isCancelled) setPhase('curtains');
       }, remainingVerseTime);
@@ -315,6 +315,7 @@ export default function App() {
     setIsSubmitting(true);
 
     try {
+      if (!supabase) throw new Error('Supabase is not configured.');
       const { error } = await supabase.from('rsvp_submissions').insert({
         full_name: formData.name.trim(),
         attendance: formData.attendance,
@@ -325,7 +326,9 @@ export default function App() {
       setRsvpSubmitted(true);
     } catch (error) {
       console.error('Error submitting RSVP:', error);
-      alert('There was an error saving your RSVP. Please try again after the Supabase migration is installed.');
+      alert(isSupabaseConfigured
+        ? 'There was an error saving your RSVP. Please try again after the Supabase migration is installed.'
+        : 'RSVP is not configured for this deployment yet.');
     } finally {
       setIsSubmitting(false);
     }
@@ -342,6 +345,7 @@ export default function App() {
     setAdminPasswordError('');
 
     try {
+      if (!supabase) throw new Error('Supabase is not configured.');
       const { data, error } = await supabase.rpc('get_rsvp_dashboard', {
         p_username: 'wed-invi-admin',
         p_password: adminPassword,
@@ -366,7 +370,9 @@ export default function App() {
       setIsAdminDashboardOpen(true);
     } catch (error) {
       console.error('Error opening RSVP dashboard:', error);
-      setAdminPasswordError('Dashboard connection failed. Check the Supabase configuration and try again.');
+      setAdminPasswordError(isSupabaseConfigured
+        ? 'Dashboard connection failed. Check your connection and try again.'
+        : 'This deployment is missing its Supabase configuration.');
     } finally {
       setIsValidatingAdmin(false);
     }
