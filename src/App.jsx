@@ -272,10 +272,15 @@ export default function App() {
   };
 
   const handleScroll = (e) => {
-    const scrollTop = e.target.scrollTop;
-    const clientHeight = e.target.clientHeight;
-    const index = Math.round(scrollTop / clientHeight);
-    if (index !== activeSection && index >= 0 && index < chapters.length) {
+    const container = e.currentTarget;
+    const viewportCenter = container.scrollTop + container.clientHeight / 2;
+    const sections = Array.from(container.children);
+    const index = sections.findIndex((section) => (
+      viewportCenter >= section.offsetTop
+      && viewportCenter < section.offsetTop + section.offsetHeight
+    ));
+
+    if (index !== -1 && index !== activeSection) {
       setActiveSection(index);
     }
   };
@@ -677,7 +682,7 @@ export default function App() {
       <main 
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 h-[100svh] w-full overflow-y-scroll snap-y snap-proximity md:snap-mandatory scroll-smooth no-scrollbar relative"
+        className="flex-1 h-[100svh] w-full overflow-y-scroll scroll-smooth no-scrollbar relative md:snap-y md:snap-mandatory"
       >
         
         {/* SECTION 0: HERO (CHAPTER 1) WITH MAGICAL CURTAIN-REVEAL ANIMATIONS */}
