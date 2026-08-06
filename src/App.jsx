@@ -1,12 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, Shirt, Gift, CheckCircle2, Send, Loader2 } from 'lucide-react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { Calendar, MapPin, Clock, Shirt, Gift, CheckCircle2, ChevronLeft, ChevronRight, Send, Loader2 } from 'lucide-react';
 
 import logo from './logo.png';
 import bible from './assets/bible.png';
 import p1 from './assets/p1.jpg';
 import p2 from './assets/p2.jpg';
 import p3 from './assets/p3.jpg';
+import churchVenue from './assets/our-lady-of-salvation-parish.jpg';
+import receptionVenue from './assets/fc-reception.jpg';
+import CoordinatorMode from './components/dashboard/CoordinatorMode';
+
+const RSVPDashboard = lazy(() => import('./components/dashboard/RSVPDashboard'));
 
 const chapters = [
   { id: 0, title: 'The Invitation', subtitle: 'Chapter I' },
@@ -50,17 +55,6 @@ const fadeInUp = {
   }
 };
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2,
-      delayChildren: 0.1
-    }
-  }
-};
-
 // Special magical entrance for Chapter 1 Hero elements
 const magicalHeroVariant = {
   hidden: { opacity: 0, scale: 0.85, y: 40, filter: 'blur(12px)' },
@@ -73,10 +67,28 @@ const magicalHeroVariant = {
   }
 };
 
+const carouselSlideVariants = {
+  enter: (direction) => ({ x: `${direction * 35}%`, opacity: 0.7, scale: 1.012 }),
+  center: { x: '0%', opacity: 1, scale: 1 },
+  exit: (direction) => ({ x: `${direction * -25}%`, opacity: 0.42, scale: 0.99 }),
+};
+
 export default function App() {
   const [phase, setPhase] = useState('welcome'); 
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
+  const [showCoordinatorMode, setShowCoordinatorMode] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'coordinator');
+  const [galleryMode, setGalleryMode] = useState('stack');
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const [galleryIdleTick, setGalleryIdleTick] = useState(0);
+  const [galleryDirection, setGalleryDirection] = useState(1);
+  const [galleryScrollLocked, setGalleryScrollLocked] = useState(false);
+  const [isAdminPasswordOpen, setIsAdminPasswordOpen] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminPasswordError, setAdminPasswordError] = useState('');
+  const [isValidatingAdmin, setIsValidatingAdmin] = useState(false);
+  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
+  const [dashboardRows, setDashboardRows] = useState([]);
   
   // RSVP Form States
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
@@ -86,8 +98,9 @@ export default function App() {
   const audioRef = useRef(null);
   const containerRef = useRef(null);
   const openingStartedRef = useRef(false);
-
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1URaiEBwsvvp5ZddvHNaot_6iFGHdMYNMNG37GPRyQ5UU1o2WFc8ZIkRckbhcqTVQKw/exec';
+  const galleryTriggerRef = useRef(null);
+  const restoreGalleryFocusRef = useRef(false);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     const styleTag = document.createElement('style');
@@ -115,6 +128,61 @@ export default function App() {
       document.head.removeChild(styleTag);
     };
   }, []);
+
+  useEffect(() => {
+    if (galleryMode !== 'stack') return undefined;
+
+    const intervalId = window.setInterval(() => {
+      setActiveGalleryIndex((currentIndex) => (currentIndex + 1) % galleryPhotos.length);
+    }, 6500);
+
+    return () => window.clearInterval(intervalId);
+  }, [galleryMode]);
+
+  useEffect(() => {
+    if (galleryMode !== 'carousel') return undefined;
+
+    const timeoutId = window.setTimeout(() => closeGalleryCarousel(), 12000);
+    return () => window.clearTimeout(timeoutId);
+  }, [galleryMode, galleryIdleTick]);
+
+  useEffect(() => {
+    if (galleryMode !== 'carousel') return undefined;
+
+    [activeGalleryIndex, (activeGalleryIndex - 1 + galleryPhotos.length) % galleryPhotos.length, (activeGalleryIndex + 1) % galleryPhotos.length].forEach((index) => {
+      const image = new Image();
+      image.src = galleryPhotos[index].img;
+    });
+  }, [activeGalleryIndex, galleryMode]);
+
+  useEffect(() => {
+    if (!galleryScrollLocked) return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const scrollContainer = containerRef.current;
+    const previousContainerOverflow = scrollContainer?.style.overflowY;
+    document.body.style.overflow = 'hidden';
+    if (scrollContainer) scrollContainer.style.overflowY = 'hidden';
+
+    const handleGalleryKeydown = (event) => {
+      if (event.key === 'Escape') closeGalleryCarousel();
+      if (event.key === 'ArrowLeft') moveGallery(-1);
+      if (event.key === 'ArrowRight') moveGallery(1);
+    };
+    window.addEventListener('keydown', handleGalleryKeydown);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      if (scrollContainer) scrollContainer.style.overflowY = previousContainerOverflow ?? '';
+      window.removeEventListener('keydown', handleGalleryKeydown);
+    };
+  }, [galleryScrollLocked, activeGalleryIndex]);
+
+  useEffect(() => {
+    if (galleryMode === 'carousel' && activeSection !== 2) {
+      closeGalleryCarousel({ restoreFocus: false });
+    }
+  }, [activeSection, galleryMode]);
 
   const handleOpenInvitation = () => {
     if (openingStartedRef.current) return;
@@ -155,32 +223,121 @@ export default function App() {
     }
   };
 
+  const moveGallery = (direction) => {
+    setGalleryIdleTick((tick) => tick + 1);
+    setGalleryDirection(direction);
+    setActiveGalleryIndex((currentIndex) => (currentIndex + direction + galleryPhotos.length) % galleryPhotos.length);
+  };
+
+  const openGalleryCarousel = () => {
+    setGalleryIdleTick((tick) => tick + 1);
+    setGalleryScrollLocked(true);
+    setGalleryMode('carousel');
+  };
+
+  const closeGalleryCarousel = ({ restoreFocus = true } = {}) => {
+    restoreGalleryFocusRef.current = restoreFocus;
+    setGalleryMode('stack');
+  };
+
+  const stackedGalleryPhotos = galleryPhotos
+    .map((photo, index) => ({
+      ...photo,
+      stackPosition: (index - activeGalleryIndex + galleryPhotos.length) % galleryPhotos.length,
+    }))
+    .sort((first, second) => second.stackPosition - first.stackPosition);
+
+  const isChapterFourActive = activeSection === 3;
+
   const handleRsvpSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
+    if (formData.name.trim().toLowerCase() === 'wed-invi-admin') {
+      setAdminPasswordError('');
+      setIsAdminPasswordOpen(true);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      await fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
+      const { supabase } = await import('./lib/supabase');
+      const { error } = await supabase.from('rsvp_submissions').insert({
+        full_name: formData.name.trim(),
+        attendance: formData.attendance,
+        guest_count: Number(formData.guests),
+        message: formData.message.trim() || null,
       });
+      if (error) throw error;
       setRsvpSubmitted(true);
     } catch (error) {
       console.error('Error submitting RSVP:', error);
-      alert('There was an error saving your RSVP. Please try again.');
+      alert('There was an error saving your RSVP. Please try again after the Supabase migration is installed.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleSubmitAnotherRsvp = () => {
+    setFormData({ name: '', guests: '1', attendance: 'yes', message: '' });
+    setRsvpSubmitted(false);
+  };
+
+  const handleAdminPasswordSubmit = async (event) => {
+    event.preventDefault();
+    setIsValidatingAdmin(true);
+    setAdminPasswordError('');
+
+    try {
+      const { supabase } = await import('./lib/supabase');
+      const { data, error } = await supabase.rpc('get_rsvp_dashboard', {
+        p_username: 'wed-invi-admin',
+        p_password: adminPassword,
+      });
+
+      if (error) {
+        const isMissingDashboardFunction = error.code === 'PGRST202' || error.message?.includes('get_rsvp_dashboard');
+        const isMissingCryptoExtension = error.message?.includes('function crypt');
+        setAdminPasswordError(
+          isMissingCryptoExtension
+            ? 'Dashboard security needs its one-time Supabase function update.'
+            : isMissingDashboardFunction
+            ? 'Dashboard setup is incomplete. Run the supplied Supabase migration once, then try again.'
+            : 'Incorrect password. Please try again.',
+        );
+        return;
+      }
+
+      setDashboardRows(data ?? []);
+      setAdminPassword('');
+      setIsAdminPasswordOpen(false);
+      setIsAdminDashboardOpen(true);
+    } catch (error) {
+      console.error('Error opening RSVP dashboard:', error);
+      setAdminPasswordError('Dashboard connection failed. Check the Supabase configuration and try again.');
+    } finally {
+      setIsValidatingAdmin(false);
+    }
+  };
+
   return (
     <div className="bg-[#36121A] text-[#F3E5E8] font-serif selection:bg-[#C48C78]/30 selection:text-[#36121A] h-[100svh] w-screen overflow-hidden relative antialiased flex flex-col">
+      {showCoordinatorMode && <CoordinatorMode onClose={() => setShowCoordinatorMode(false)} />}
+      {isAdminDashboardOpen && <Suspense fallback={null}><RSVPDashboard rows={dashboardRows} onClose={() => setIsAdminDashboardOpen(false)} /></Suspense>}
+      <AnimatePresence>
+        {isAdminPasswordOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[75] flex items-center justify-center bg-[#16070B]/80 p-6 backdrop-blur-sm">
+            <motion.form initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} onSubmit={handleAdminPasswordSubmit} className="w-full max-w-sm rounded-3xl border border-[#C8A96A]/45 bg-[#451822] p-7 shadow-2xl">
+              <p className="font-sans text-[10px] uppercase tracking-[0.3em] text-[#C8A96A]">Recognizing invitation...</p>
+              <h2 className="mt-3 font-serif text-3xl font-light text-[#F3E5E8]">Admin access</h2>
+              <label className="mt-6 block font-sans text-[10px] uppercase tracking-[0.2em] text-[#D4B8BC]">Password<input autoFocus type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-[#C8A96A]/35 bg-[#2A0D14] px-4 py-3 font-serif text-lg text-[#F3E5E8] outline-none" /></label>
+              {adminPasswordError && <p className="mt-3 text-sm text-[#F3B5AD]">{adminPasswordError}</p>}
+              <div className="mt-6 flex gap-3"><button type="button" onClick={() => setIsAdminPasswordOpen(false)} className="flex-1 rounded-full border border-[#C8A96A]/35 px-4 py-3 font-sans text-[10px] uppercase tracking-[0.2em] text-[#F3E5E8]">Cancel</button><button type="submit" disabled={isValidatingAdmin} className="flex-1 rounded-full bg-[#C8A96A] px-4 py-3 font-sans text-[10px] uppercase tracking-[0.2em] text-[#2A0D14] disabled:opacity-60">{isValidatingAdmin ? 'Checking...' : 'Continue'}</button></div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <audio ref={audioRef} loop src="/bg-music.mp3" preload="auto" />
 
@@ -624,41 +781,119 @@ export default function App() {
               <div className="w-12 h-[1px] bg-[#C48C78] mx-auto mt-3" />
             </motion.div>
 
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={staggerContainer}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            >
-              {galleryPhotos.map((photo, index) => (
-                <motion.div 
-                  key={index}
-                  variants={{
-                    hidden: { opacity: 0, y: 40, scale: 0.95 },
-                    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.8, delay: index * 0.2, ease: "easeOut" } }
-                  }}
-                  whileHover={{ scale: 1.04, y: -5 }}
-                  className="h-72 md:h-80 bg-[#451822]/60 border border-[#C48C78]/30 rounded-2xl p-2 shadow-xl backdrop-blur-sm flex flex-col justify-between relative overflow-hidden group cursor-pointer"
+            <AnimatePresence initial={false}>
+              {galleryMode === 'stack' && (
+                <motion.button
+                  key="gallery-stack"
+                  ref={galleryTriggerRef}
+                  type="button"
+                  onClick={openGalleryCarousel}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  className="group relative mx-auto block h-[20rem] w-full max-w-sm cursor-pointer rounded-[1.75rem] text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C48C78] md:h-[24rem]"
+                  aria-label="Open the wedding photo album"
                 >
-                  <div className="w-full h-full overflow-hidden rounded-xl relative">
-                    <img 
-                      src={photo.img} 
-                      alt={photo.caption} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      whileHover={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 bg-gradient-to-t from-[#2A0D14]/90 via-[#2A0D14]/40 to-transparent flex items-end justify-center p-4"
-                    >
-                      <p className="text-xs uppercase tracking-widest text-[#F3E5E8] font-light transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300">{photo.caption}</p>
-                    </motion.div>
-                  </div>
+                  {stackedGalleryPhotos.map((photo) => {
+                    const rotation = photo.stackPosition === 1 ? -5 : photo.stackPosition === 2 ? 6 : 0;
+                    return (
+                      <motion.div
+                        key={photo.caption}
+                        animate={{
+                          x: photo.stackPosition * 10,
+                          y: photo.stackPosition * 9,
+                          rotate: rotation,
+                          scale: 1 - photo.stackPosition * 0.045,
+                          opacity: 1 - photo.stackPosition * 0.16,
+                        }}
+                        transition={{ duration: 1.55, ease: [0.16, 1, 0.3, 1] }}
+                        style={{ zIndex: galleryPhotos.length - photo.stackPosition }}
+                        className="absolute inset-0 overflow-hidden rounded-[1.75rem] border border-[#C48C78]/35 bg-[#451822] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.38)]"
+                      >
+                        <img src={photo.img} alt={photo.caption} className="h-full w-full rounded-[1.35rem] object-cover" />
+                        {photo.stackPosition === 0 && (
+                          <div className="absolute inset-x-2 bottom-2 rounded-b-[1.35rem] bg-gradient-to-t from-[#2A0D14]/90 via-[#2A0D14]/30 to-transparent px-5 pb-5 pt-12">
+                            <p className="font-serif text-lg text-[#F3E5E8]">{photo.caption}</p>
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                  <span className="absolute -bottom-9 left-0 right-0 text-center font-sans text-[10px] uppercase tracking-[0.32em] text-[#C48C78] transition-opacity duration-300 group-hover:opacity-100">Tap to open our album</span>
+                </motion.button>
+              )}
+            </AnimatePresence>
+            <AnimatePresence
+              initial={false}
+              onExitComplete={() => {
+                setGalleryScrollLocked(false);
+                if (restoreGalleryFocusRef.current) {
+                  galleryTriggerRef.current?.focus();
+                  restoreGalleryFocusRef.current = false;
+                }
+              }}
+            >
+              {galleryMode === 'carousel' && (
+                <motion.div
+                  key="gallery-carousel"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: shouldReduceMotion ? 0.2 : 0.42, ease: [0.16, 1, 0.3, 1] }}
+                  className="fixed inset-0 z-[65] flex items-center justify-center bg-[#16070B]/80 p-5 backdrop-blur-sm"
+                  onClick={closeGalleryCarousel}
+                >
+                  <motion.section
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Wedding photo album"
+                    initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: 12 }}
+                    transition={{ duration: shouldReduceMotion ? 0.2 : 0.46, ease: [0.16, 1, 0.3, 1] }}
+                    onClick={(event) => event.stopPropagation()}
+                    onPointerDown={() => setGalleryIdleTick((tick) => tick + 1)}
+                    className="relative w-full max-w-3xl"
+                  >
+                    <div className="relative overflow-hidden rounded-[1.75rem] border border-[#C48C78]/35 bg-[#451822] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.38)]">
+                      <motion.div key={`previous-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -left-[21%] w-[42%] overflow-hidden rounded-[1.35rem] blur-[1px]">
+                        <img src={galleryPhotos[(activeGalleryIndex - 1 + galleryPhotos.length) % galleryPhotos.length].img} alt="" className="h-full w-full object-cover" />
+                      </motion.div>
+                      <motion.div key={`next-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -right-[21%] w-[42%] overflow-hidden rounded-[1.35rem] blur-[1px]">
+                        <img src={galleryPhotos[(activeGalleryIndex + 1) % galleryPhotos.length].img} alt="" className="h-full w-full object-cover" />
+                      </motion.div>
+                      <div className="relative mx-auto w-[76%] aspect-[4/5] md:aspect-[16/10]">
+                      <AnimatePresence initial={false} custom={shouldReduceMotion ? 0 : galleryDirection}>
+                      <motion.figure
+                        key={galleryPhotos[activeGalleryIndex].caption}
+                        custom={shouldReduceMotion ? 0 : galleryDirection}
+                        variants={carouselSlideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{ duration: shouldReduceMotion ? 0.2 : 0.56, ease: [0.22, 1, 0.36, 1] }}
+                        drag={shouldReduceMotion ? false : 'x'}
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.08}
+                        onDragEnd={(_, info) => {
+                          if (Math.abs(info.offset.x) > 45) moveGallery(info.offset.x > 0 ? -1 : 1);
+                        }}
+                        className="absolute inset-0 m-0 overflow-hidden rounded-[1.35rem]"
+                      >
+                        <img src={galleryPhotos[activeGalleryIndex].img} alt={galleryPhotos[activeGalleryIndex].caption} className="h-full w-full object-cover" />
+                        <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#2A0D14]/90 to-transparent px-6 pb-6 pt-16 font-serif text-xl text-[#F3E5E8]">{galleryPhotos[activeGalleryIndex].caption}</figcaption>
+                      </motion.figure>
+                      </AnimatePresence>
+                      </div>
+                      <button type="button" onClick={() => moveGallery(-1)} className="absolute left-[8%] top-1/2 -translate-y-1/2 rounded-full border border-[#F3E5E8]/30 bg-[#2A0D14]/75 p-2 text-[#F3E5E8] backdrop-blur-sm" aria-label="Previous photo"><ChevronLeft className="h-5 w-5" /></button>
+                      <button type="button" onClick={() => moveGallery(1)} className="absolute right-[8%] top-1/2 -translate-y-1/2 rounded-full border border-[#F3E5E8]/30 bg-[#2A0D14]/75 p-2 text-[#F3E5E8] backdrop-blur-sm" aria-label="Next photo"><ChevronRight className="h-5 w-5" /></button>
+                    </div>
+                    <button type="button" onClick={closeGalleryCarousel} className="mx-auto mt-5 block font-sans text-[10px] uppercase tracking-[0.28em] text-[#C48C78] transition-colors hover:text-[#F3E5E8]">Close album</button>
+                  </motion.section>
                 </motion.div>
-              ))}
-            </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
 
@@ -667,8 +902,7 @@ export default function App() {
           <div className="w-full">
             <motion.div 
               initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
+              animate={isChapterFourActive ? 'visible' : 'hidden'}
               variants={fadeInUp}
               className="text-center mb-8"
             >
@@ -681,15 +915,17 @@ export default function App() {
               
               <motion.div 
                 initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
+                animate={isChapterFourActive ? 'visible' : 'hidden'}
                 variants={{
                   hidden: { opacity: 0, x: -30 },
                   visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut" } }
                 }}
                 whileHover={{ scale: 1.02 }}
-                className="bg-[#451822]/70 border border-[#C48C78]/30 p-6 rounded-2xl shadow-xl backdrop-blur-sm text-center flex flex-col items-center transition-all duration-300"
+                className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/70 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300"
               >
+                <img src={churchVenue} alt="Our Lady of Salvation Parish" className="absolute inset-0 h-full w-full object-cover opacity-100" />
+                <div className="absolute inset-0 bg-[#16070B]/70" />
+                <div className="relative z-10 flex h-full flex-col items-center drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]">
                 <motion.div 
                   animate={{ rotate: [0, 5, -5, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -711,19 +947,22 @@ export default function App() {
                   <MapPin className="w-4 h-4 text-[#C48C78]" />
                   <span>View Exact Map Location</span>
                 </a>
+                </div>
               </motion.div>
 
               <motion.div 
                 initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
+                animate={isChapterFourActive ? 'visible' : 'hidden'}
                 variants={{
                   hidden: { opacity: 0, x: 30 },
                   visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut" } }
                 }}
                 whileHover={{ scale: 1.02 }}
-                className="bg-[#451822]/70 border border-[#C48C78]/30 p-6 rounded-2xl shadow-xl backdrop-blur-sm text-center flex flex-col items-center transition-all duration-300"
+                className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/70 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300"
               >
+                <img src={receptionVenue} alt="F and C reception venue" className="absolute inset-0 h-full w-full object-cover opacity-100" />
+                <div className="absolute inset-0 bg-[#16070B]/70" />
+                <div className="relative z-10 flex h-full flex-col items-center drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]">
                 <motion.div 
                   animate={{ rotate: [0, -5, 5, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -734,8 +973,8 @@ export default function App() {
                 <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">The Reception</h3>
                 <p className="text-xs font-semibold text-[#C48C78] mb-0.5">Immediately Following Ceremony</p>
                 <p className="text-xs text-[#D4B8BC] mb-3">11:00 AM Onwards</p>
-                <p className="text-[11px] font-semibold text-[#F3E5E8] tracking-widest uppercase mb-1">Our Lady of Salvation Parish</p>
-                <p className="text-[10px] text-[#D4B8BC] mb-4">Purok 6, Brgy. Cabacungan, La Castellana, Negros Occidental</p>
+                <p className="text-[11px] font-semibold text-[#F3E5E8] tracking-widest uppercase mb-1">F & C Guest House</p>
+                <p className="text-[10px] text-[#D4B8BC] mb-4">6223 Rizal St, Canlaon City, Negros Oriental</p>
                 <a 
                   href="https://www.google.com/maps/search/?api=1&query=Our+Lady+of+Salvation+Parish+Purok+6+Brgy+Cabacungan+La+Castellana+Negros+Occidental" 
                   target="_blank" 
@@ -745,6 +984,7 @@ export default function App() {
                   <MapPin className="w-4 h-4 text-[#C48C78]" />
                   <span>View Exact Map Location</span>
                 </a>
+                </div>
               </motion.div>
 
             </div>
@@ -753,29 +993,28 @@ export default function App() {
               
               <motion.div 
                 initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
+                animate={isChapterFourActive ? 'visible' : 'hidden'}
                 variants={fadeInUp}
                 whileHover={{ scale: 1.02 }}
-                className="bg-[#451822]/50 border border-[#C48C78]/30 p-5 rounded-2xl text-center shadow-lg transition-all"
+                className="rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/50 p-5 text-center shadow-lg transition-all"
               >
                 <Shirt className="w-6 h-6 text-[#C48C78] mx-auto mb-2" />
                 <h3 className="text-lg font-serif font-light text-[#F3E5E8] mb-1">Dress Code</h3>
                 <p className="text-xs text-[#C48C78] font-medium mb-2">Rose Gold &amp; Burgundy</p>
-                <div className="flex justify-center space-x-3 my-2">
-                  <span className="w-5 h-5 rounded-full bg-[#C48C78] shadow-md border border-[#36121A]" />
-                  <span className="w-5 h-5 rounded-full bg-[#800020] shadow-md border border-[#36121A]" />
+                <div className="flex justify-center gap-2 my-3" aria-label="Rose gold and burgundy dress-code palette">
+                  {['#B76E79', '#B06676', '#A75D70', '#9E5268', '#954560', '#8C3655', '#842447', '#800020'].map((color) => (
+                    <span key={color} className="h-5 w-5 rounded-full border border-[#F3E5E8]/30 shadow-md" style={{ backgroundColor: color }} />
+                  ))}
                 </div>
                 <p className="text-[11px] text-[#D4B8BC] italic mt-1">Kindly wear your attire in Rose Gold or Burgundy tones.</p>
               </motion.div>
 
               <motion.div 
                 initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
+                animate={isChapterFourActive ? 'visible' : 'hidden'}
                 variants={fadeInUp}
                 whileHover={{ scale: 1.02 }}
-                className="bg-[#451822]/50 border border-[#C48C78]/30 p-5 rounded-2xl text-center flex flex-col justify-center shadow-lg transition-all"
+                className="flex flex-col justify-center rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/50 p-5 text-center shadow-lg transition-all"
               >
                 <Gift className="w-6 h-6 text-[#C48C78] mx-auto mb-2" />
                 <h3 className="text-lg font-serif font-light text-[#F3E5E8] mb-1">Gift Registry</h3>
@@ -903,6 +1142,13 @@ export default function App() {
                         ? "We have successfully recorded your response. We can't wait to celebrate our special day with you!"
                         : "We are sorry you won't be able to make it, but thank you for letting us know."}
                     </p>
+                    <button
+                      type="button"
+                      onClick={handleSubmitAnotherRsvp}
+                      className="mt-5 rounded-full border border-[#C48C78]/55 px-6 py-3 font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-[#F3E5E8] transition-colors hover:border-[#C48C78] hover:bg-[#C48C78]/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C48C78]"
+                    >
+                      Submit another RSVP
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>

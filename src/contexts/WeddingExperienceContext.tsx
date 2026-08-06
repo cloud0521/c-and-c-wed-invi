@@ -12,6 +12,7 @@ export function WeddingExperienceProvider({ experience, children }: WeddingExper
   return <WeddingExperienceContext.Provider value={experience}>{children}</WeddingExperienceContext.Provider>;
 }
 
+// oxlint-disable-next-line react/only-export-components
 export function useWeddingExperience(): WeddingExperience {
   const experience = useContext(WeddingExperienceContext);
 

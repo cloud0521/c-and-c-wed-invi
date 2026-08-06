@@ -13,6 +13,7 @@ export function ThemeProvider({ templateId, children }: ThemeProviderProps) {
   return <ThemeContext.Provider value={getWeddingTemplate(templateId)}>{children}</ThemeContext.Provider>;
 }
 
+// oxlint-disable-next-line react/only-export-components
 export function useTheme(): WeddingTemplate {
   const theme = useContext(ThemeContext);
 

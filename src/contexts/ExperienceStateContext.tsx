@@ -19,6 +19,7 @@ export function ExperienceStateProvider({ children }: { children: ReactNode }) {
   return <ExperienceStateContext.Provider value={value}>{children}</ExperienceStateContext.Provider>;
 }
 
+// oxlint-disable-next-line react/only-export-components
 export function useExperienceState(): ExperienceState {
   const state = useContext(ExperienceStateContext);
 
