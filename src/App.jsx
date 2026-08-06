@@ -202,26 +202,29 @@ export default function App() {
 
     let isCancelled = false;
     let transitionTimeoutId;
+    const imageTimeoutIds = new Set();
     const startedAt = Date.now();
     setLoadedImageCount(0);
 
     const preloadImage = (source) => new Promise((resolve) => {
       const image = new Image();
       let isSettled = false;
-      const finish = async () => {
+      const finish = () => {
         if (isSettled) return;
         isSettled = true;
-        try {
-          await image.decode?.();
-        } catch {
-          // A decoded image is preferred, but an image that loaded is still ready to display.
-        }
+        window.clearTimeout(timeoutId);
+        imageTimeoutIds.delete(timeoutId);
         if (!isCancelled) setLoadedImageCount((count) => count + 1);
         resolve();
       };
 
+      // Mobile browsers can leave Image.decode() pending indefinitely. A loaded
+      // image is sufficient here, and this timeout guarantees the opening never traps a guest.
+      const timeoutId = window.setTimeout(finish, 8000);
+      imageTimeoutIds.add(timeoutId);
       image.onload = finish;
       image.onerror = finish;
+      image.decoding = 'async';
       image.src = source;
       if (image.complete) finish();
     });
@@ -237,6 +240,7 @@ export default function App() {
     return () => {
       isCancelled = true;
       window.clearTimeout(transitionTimeoutId);
+      imageTimeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
   }, [phase]);
 
