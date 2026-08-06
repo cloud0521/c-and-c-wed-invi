@@ -668,7 +668,7 @@ export default function App() {
       <main 
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 h-[100svh] w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar relative"
+        className="flex-1 h-[100svh] w-full overflow-y-scroll snap-y snap-proximity md:snap-mandatory scroll-smooth no-scrollbar relative"
       >
         
         {/* SECTION 0: HERO (CHAPTER 1) WITH MAGICAL CURTAIN-REVEAL ANIMATIONS */}
