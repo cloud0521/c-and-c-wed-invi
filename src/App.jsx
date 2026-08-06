@@ -3,12 +3,21 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Calendar, MapPin, Clock, Shirt, Gift, CheckCircle2, ChevronLeft, ChevronRight, Send, Loader2 } from 'lucide-react';
 
 import logo from './logo.png';
+import logoWebp from './logo.webp';
 import bible from './assets/bible.png';
+import bibleWebp from './assets/bible.webp';
 import p1 from './assets/p1.jpg';
+import p1Small from './assets/p1-720.webp';
+import p1Large from './assets/p1-1200.webp';
 import p2 from './assets/p2.jpg';
+import p2Small from './assets/p2-720.webp';
+import p2Large from './assets/p2-1200.webp';
 import p3 from './assets/p3.jpg';
+import p3Small from './assets/p3-720.webp';
+import p3Large from './assets/p3-1200.webp';
 import churchVenue from './assets/our-lady-of-salvation-parish.jpg';
 import receptionVenue from './assets/fc-reception.jpg';
+import receptionVenueWebp from './assets/fc-reception-720.webp';
 import CoordinatorMode from './components/dashboard/CoordinatorMode';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 
@@ -41,12 +50,12 @@ const timelineEvents = [
 ];
 
 const galleryPhotos = [
-  { img: p1, caption: "A Playful Moment" },
-  { img: p2, caption: "Exploring Together" },
-  { img: p3, caption: "By the Sea" }
+  { img: p1, webpSrcSet: `${p1Small} 720w, ${p1Large} 1200w`, preloadSrc: p1Large, caption: "A Playful Moment" },
+  { img: p2, webpSrcSet: `${p2Small} 720w, ${p2Large} 1200w`, preloadSrc: p2Large, caption: "Exploring Together" },
+  { img: p3, webpSrcSet: `${p3Small} 720w, ${p3Large} 1200w`, preloadSrc: p3Large, caption: "By the Sea" }
 ];
 
-const experienceImageAssets = [logo, bible, p1, p2, p3, churchVenue, receptionVenue];
+const criticalExperienceImages = [logoWebp, bibleWebp];
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
@@ -179,9 +188,15 @@ export default function App() {
 
     [activeGalleryIndex, (activeGalleryIndex - 1 + galleryPhotos.length) % galleryPhotos.length, (activeGalleryIndex + 1) % galleryPhotos.length].forEach((index) => {
       const image = new Image();
-      image.src = galleryPhotos[index].img;
+      image.src = galleryPhotos[index].preloadSrc;
     });
   }, [activeGalleryIndex, galleryMode]);
+
+  useEffect(() => {
+    if (activeSection < 1) return;
+    const image = new Image();
+    image.src = galleryPhotos[0].preloadSrc;
+  }, [activeSection]);
 
   useEffect(() => {
     if (!galleryScrollLocked) return undefined;
@@ -252,7 +267,7 @@ export default function App() {
       if (image.complete) finish(image.naturalWidth > 0);
     });
 
-    Promise.all(experienceImageAssets.map(preloadImage)).then(() => {
+    Promise.all(criticalExperienceImages.map(preloadImage)).then(() => {
       if (isCancelled) return;
       const remainingVerseTime = Math.max(0, 5000 - (Date.now() - startedAt));
       transitionTimeoutId = window.setTimeout(() => {
@@ -331,6 +346,8 @@ export default function App() {
       stackPosition: (index - activeGalleryIndex + galleryPhotos.length) % galleryPhotos.length,
     }))
     .sort((first, second) => second.stackPosition - first.stackPosition);
+  const activeGalleryPhoto = galleryPhotos[activeGalleryIndex];
+  const isActiveGalleryPhotoLoaded = loadedImageSources.has(activeGalleryPhoto.preloadSrc);
 
   const isChapterFourActive = activeSection === 3;
 
@@ -483,7 +500,7 @@ export default function App() {
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 className="w-36 h-36 md:w-44 md:h-44 mb-6 relative flex items-center justify-center"
               >
-                <img src={logo} alt="C & C Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_20px_rgba(196,140,120,0.6)]" />
+                <picture><source srcSet={logoWebp} type="image/webp" /><img src={logo} width="2000" height="2000" alt="C & C Logo" fetchPriority="high" className="h-full w-full object-contain filter drop-shadow-[0_0_20px_rgba(196,140,120,0.6)]" /></picture>
               </motion.div>
 
               <p className="font-sans text-[10px] tracking-[0.4em] text-[#C48C78] uppercase mb-1">You Are Cordially Invited</p>
@@ -577,18 +594,14 @@ export default function App() {
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute inset-0 bg-[#C48C78]/30 rounded-full blur-2xl -z-10"
               />
-              <img
-                src={bible}
-                alt="Holy Bible"
-                className="w-full h-full object-contain filter drop-shadow-[0_0_25px_rgba(196,140,120,0.6)]"
-              />
+              <picture><source srcSet={bibleWebp} type="image/webp" /><img src={bible} width="598" height="372" alt="Holy Bible" fetchPriority="high" className="h-full w-full object-contain filter drop-shadow-[0_0_25px_rgba(196,140,120,0.6)]" /></picture>
             </motion.div>
             <div className="absolute bottom-6 left-1/2 w-48 -translate-x-1/2 text-center" role="status" aria-live="polite">
               <p className="font-sans text-[9px] uppercase tracking-[0.24em] text-[#D4B8BC]">Preparing your experience</p>
               <div className="mt-2 h-px overflow-hidden bg-[#C48C78]/25">
                 <motion.div
                   className="h-full bg-[#C48C78]"
-                  animate={{ width: `${(loadedImageCount / experienceImageAssets.length) * 100}%` }}
+                  animate={{ width: `${(loadedImageCount / criticalExperienceImages.length) * 100}%` }}
                   transition={{ duration: 0.35, ease: 'easeOut' }}
                 />
               </div>
@@ -770,11 +783,7 @@ export default function App() {
               transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="w-24 h-24 md:w-28 md:h-28 mb-5 relative flex items-center justify-center filter drop-shadow-[0_0_25px_rgba(196,140,120,0.6)]"
             >
-              <img 
-                src={logo} 
-                alt="C & C Logo" 
-                className="w-full h-full object-contain" 
-              />
+              <picture><source srcSet={logoWebp} type="image/webp" /><img src={logo} width="2000" height="2000" alt="C & C Logo" className="h-full w-full object-contain" /></picture>
             </motion.div>
 
             <motion.div 
@@ -911,7 +920,7 @@ export default function App() {
                 >
                   {stackedGalleryPhotos.map((photo) => {
                     const rotation = photo.stackPosition === 1 ? -5 : photo.stackPosition === 2 ? 6 : 0;
-                    const isPhotoLoaded = loadedImageSources.has(photo.img);
+                    const isPhotoLoaded = loadedImageSources.has(photo.preloadSrc);
                     return (
                       <motion.div
                         key={photo.caption}
@@ -931,7 +940,7 @@ export default function App() {
                             <span className="font-sans text-[9px] uppercase tracking-[0.24em] text-[#D4B8BC]">Preparing photograph</span>
                           </div>
                         )}
-                        <img src={photo.img} alt={photo.caption} draggable="false" onLoad={() => setLoadedImageSources((sources) => sources.has(photo.img) ? sources : new Set(sources).add(photo.img))} className={`relative h-full w-full rounded-[1.35rem] object-cover transition-opacity duration-700 [backface-visibility:hidden] ${isPhotoLoaded ? 'opacity-100' : 'opacity-0'}`} />
+                        <picture className="block h-full w-full"><source srcSet={photo.webpSrcSet} sizes="(min-width: 768px) 384px, 92vw" type="image/webp" /><img src={photo.img} width="1200" height="1200" alt={photo.caption} draggable="false" loading="lazy" decoding="async" onLoad={() => setLoadedImageSources((sources) => sources.has(photo.preloadSrc) ? sources : new Set(sources).add(photo.preloadSrc))} className={`relative h-full w-full rounded-[1.35rem] object-cover transition-opacity duration-700 [backface-visibility:hidden] ${isPhotoLoaded ? 'opacity-100' : 'opacity-0'}`} /></picture>
                         {photo.stackPosition === 0 && (
                           <div className="absolute inset-x-2 bottom-2 rounded-b-[1.35rem] bg-gradient-to-t from-[#2A0D14]/90 via-[#2A0D14]/30 to-transparent px-5 pb-5 pt-12">
                             <p className="font-serif text-lg text-[#F3E5E8]">{photo.caption}</p>
@@ -978,10 +987,10 @@ export default function App() {
                   >
                     <div className="relative overflow-hidden rounded-[1.75rem] border border-[#C48C78]/35 bg-[#451822] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.38)]">
                       <motion.div key={`previous-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -left-[21%] w-[42%] overflow-hidden rounded-[1.35rem] blur-[1px]">
-                        <img src={galleryPhotos[(activeGalleryIndex - 1 + galleryPhotos.length) % galleryPhotos.length].img} alt="" className="h-full w-full object-cover" />
+                        <img src={galleryPhotos[(activeGalleryIndex - 1 + galleryPhotos.length) % galleryPhotos.length].preloadSrc} alt="" decoding="async" className="h-full w-full object-cover" />
                       </motion.div>
                       <motion.div key={`next-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -right-[21%] w-[42%] overflow-hidden rounded-[1.35rem] blur-[1px]">
-                        <img src={galleryPhotos[(activeGalleryIndex + 1) % galleryPhotos.length].img} alt="" className="h-full w-full object-cover" />
+                        <img src={galleryPhotos[(activeGalleryIndex + 1) % galleryPhotos.length].preloadSrc} alt="" decoding="async" className="h-full w-full object-cover" />
                       </motion.div>
                       <div className="relative mx-auto w-[76%] aspect-[4/5] md:aspect-[16/10]">
                       <AnimatePresence initial={false} custom={shouldReduceMotion ? 0 : galleryDirection}>
@@ -1001,7 +1010,8 @@ export default function App() {
                         }}
                         className="absolute inset-0 m-0 touch-pan-y overflow-hidden rounded-[1.35rem]"
                       >
-                        <img src={galleryPhotos[activeGalleryIndex].img} alt={galleryPhotos[activeGalleryIndex].caption} className="h-full w-full object-cover" />
+                        {!isActiveGalleryPhotoLoaded && <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,#2A0D14,#5A2430,#2A0D14)]"><span className="font-sans text-[9px] uppercase tracking-[0.24em] text-[#D4B8BC]">Preparing photograph</span></div>}
+                        <picture className="block h-full w-full"><source srcSet={activeGalleryPhoto.webpSrcSet} sizes="(min-width: 768px) 720px, 76vw" type="image/webp" /><img src={activeGalleryPhoto.img} width="1200" height="1200" alt={activeGalleryPhoto.caption} decoding="async" onLoad={() => setLoadedImageSources((sources) => sources.has(activeGalleryPhoto.preloadSrc) ? sources : new Set(sources).add(activeGalleryPhoto.preloadSrc))} className={`h-full w-full object-cover transition-opacity duration-700 ${isActiveGalleryPhotoLoaded ? 'opacity-100' : 'opacity-0'}`} /></picture>
                         <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#2A0D14]/90 to-transparent px-6 pb-6 pt-16 font-serif text-xl text-[#F3E5E8]">{galleryPhotos[activeGalleryIndex].caption}</figcaption>
                       </motion.figure>
                       </AnimatePresence>
@@ -1044,7 +1054,7 @@ export default function App() {
                 whileHover={{ scale: 1.02 }}
                 className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/70 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300"
               >
-                <img src={churchVenue} alt="Our Lady of Salvation Parish" className="absolute inset-0 h-full w-full object-cover opacity-100" />
+                <img src={churchVenue} width="386" height="518" alt="Our Lady of Salvation Parish" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-100" />
                 <div className="absolute inset-0 bg-[#16070B]/70" />
                 <div className="relative z-10 flex h-full flex-col items-center drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]">
                 <motion.div 
@@ -1081,7 +1091,7 @@ export default function App() {
                 whileHover={{ scale: 1.02 }}
                 className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/70 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300"
               >
-                <img src={receptionVenue} alt="F and C reception venue" className="absolute inset-0 h-full w-full object-cover opacity-100" />
+                <picture><source srcSet={receptionVenueWebp} type="image/webp" /><img src={receptionVenue} width="1333" height="1000" alt="F and C reception venue" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-100" /></picture>
                 <div className="absolute inset-0 bg-[#16070B]/70" />
                 <div className="relative z-10 flex h-full flex-col items-center drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]">
                 <motion.div 
