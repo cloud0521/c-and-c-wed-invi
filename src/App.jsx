@@ -119,8 +119,10 @@ export default function App() {
     size: Math.random() * 2 + 1,
     left: `${8 + Math.random() * 84}%`,
     top: `${8 + Math.random() * 80}%`,
-    duration: Math.random() * 3 + 4,
-    delay: Math.random() * 3,
+    rise: -80 - Math.random() * 80,
+    drift: (Math.random() - 0.5) * 36,
+    duration: Math.random() * 4 + 4,
+    delay: Math.random() * 2,
   })), []);
 
   useEffect(() => {
@@ -624,10 +626,10 @@ export default function App() {
             style={{ width: glitter.size, height: glitter.size, left: glitter.left, top: glitter.top }}
             animate={shouldReduceMotion
               ? { opacity: 0.28 }
-              : { opacity: [0.08, 0.62, 0.12], scale: [0.75, 1.45, 0.8] }}
+              : { y: [0, glitter.rise], x: [0, glitter.drift], opacity: [0, 0.6, 0] }}
             transition={shouldReduceMotion
               ? { duration: 0 }
-              : { duration: glitter.duration, delay: glitter.delay, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+              : { duration: glitter.duration, delay: glitter.delay, repeat: Infinity, ease: 'easeInOut' }}
           />
         ))}
       </div>
