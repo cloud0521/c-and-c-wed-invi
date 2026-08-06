@@ -1,6 +1,6 @@
-import p1 from '../../assets/p1.jpg';
-import p2 from '../../assets/p2.jpg';
-import p3 from '../../assets/p3.jpg';
+import p1 from '../../assets/p1-1200.webp';
+import p2 from '../../assets/p2-1200.webp';
+import p3 from '../../assets/p3-1200.webp';
 import type { WeddingExperience } from '../../types/wedding';
 
 export const cloydCyrinWedding: WeddingExperience = {
@@ -12,8 +12,8 @@ export const cloydCyrinWedding: WeddingExperience = {
     weddingDate: '2026-12-19T09:00:00+08:00',
   },
   branding: {
-    companyName: 'Company Name',
-    signature: 'Crafted with love by Company Name, creating timeless digital wedding experiences.',
+    companyName: 'Wedd Invi',
+    signature: 'Crafted with love by Wedd Invi, creating timeless digital wedding experiences.',
   },
   opening: {
     verse: 'I have found the one my soul loves. I held him and would not let him go.',
@@ -34,9 +34,9 @@ export const cloydCyrinWedding: WeddingExperience = {
       title: 'The Reception',
       dateTime: '2026-12-19T11:00:00+08:00',
       timeLabel: 'Immediately following the ceremony',
-      venue: 'Our Lady of Salvation Parish',
-      address: 'Purok 6, Brgy. Cabacungan, La Castellana, Negros Occidental',
-      mapUrl: 'https://www.google.com/maps/search/?api=1&query=Our+Lady+of+Salvation+Parish+Purok+6+Brgy+Cabacungan+La+Castellana+Negros+Occidental',
+      venue: 'F & C Guest House',
+      address: '6223 Rizal St, Canlaon City, Negros Oriental',
+      mapUrl: 'https://www.google.com/maps/search/?api=1&query=F%20%26%20C%20Guest%20House%206223%20Rizal%20St%20Canlaon%20City%20Negros%20Oriental',
     },
     dressCode: {
       name: 'Rose Gold & Burgundy',
@@ -85,5 +85,9 @@ export const cloydCyrinWedding: WeddingExperience = {
       declined: 'Thank you for letting us know. You will be missed on our special day.',
     },
   },
-  faqs: [],
+  faqs: [
+    { id: 'arrival', question: 'When should I arrive?', answer: 'Please arrive at least 30 minutes before the ceremony so everyone may be seated comfortably.' },
+    { id: 'children', question: 'May we bring children?', answer: 'Please follow the guest count written on your invitation. Contact the couple if you need help.' },
+    { id: 'photos', question: 'May we take photos?', answer: 'Yes—after the ceremony begins, please keep phones silent and avoid blocking the official photographers.' },
+  ],
 };

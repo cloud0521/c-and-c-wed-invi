@@ -2,24 +2,19 @@ import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Calendar, MapPin, Clock, Shirt, Gift, CheckCircle2, ChevronLeft, ChevronRight, Send, Loader2 } from 'lucide-react';
 
-import logo from './logo.png';
 import logoWebp from './logo.webp';
-import bible from './assets/bible.png';
 import bibleWebp from './assets/bible.webp';
-import p1 from './assets/p1.jpg';
 import p1Small from './assets/p1-720.webp';
 import p1Large from './assets/p1-1200.webp';
-import p2 from './assets/p2.jpg';
 import p2Small from './assets/p2-720.webp';
 import p2Large from './assets/p2-1200.webp';
-import p3 from './assets/p3.jpg';
 import p3Small from './assets/p3-720.webp';
 import p3Large from './assets/p3-1200.webp';
 import churchVenue from './assets/our-lady-of-salvation-parish.jpg';
-import receptionVenue from './assets/fc-reception.jpg';
 import receptionVenueWebp from './assets/fc-reception-720.webp';
 import CoordinatorMode from './components/dashboard/CoordinatorMode';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { useWeddingExperience } from './contexts/WeddingExperienceContext';
 
 const RSVPDashboard = lazy(() => import('./components/dashboard/RSVPDashboard'));
 
@@ -50,9 +45,9 @@ const timelineEvents = [
 ];
 
 const galleryPhotos = [
-  { img: p1, webpSrcSet: `${p1Small} 720w, ${p1Large} 1200w`, preloadSrc: p1Large, caption: "A Playful Moment" },
-  { img: p2, webpSrcSet: `${p2Small} 720w, ${p2Large} 1200w`, preloadSrc: p2Large, caption: "Exploring Together" },
-  { img: p3, webpSrcSet: `${p3Small} 720w, ${p3Large} 1200w`, preloadSrc: p3Large, caption: "By the Sea" }
+  { img: p1Small, webpSrcSet: `${p1Small} 720w, ${p1Large} 1200w`, preloadSrc: p1Large, caption: "A Playful Moment" },
+  { img: p2Small, webpSrcSet: `${p2Small} 720w, ${p2Large} 1200w`, preloadSrc: p2Large, caption: "Exploring Together" },
+  { img: p3Small, webpSrcSet: `${p3Small} 720w, ${p3Large} 1200w`, preloadSrc: p3Large, caption: "By the Sea" }
 ];
 
 const criticalExperienceImages = [logoWebp, bibleWebp];
@@ -86,6 +81,9 @@ const carouselSlideVariants = {
 };
 
 export default function App() {
+  const experience = useWeddingExperience();
+  const { identity, opening, schedule, gifts, rsvp, faqs, branding } = experience;
+  const [firstName, secondName] = identity.coupleNames.split(/\s*&\s*/);
   const [phase, setPhase] = useState('welcome'); 
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
@@ -108,6 +106,7 @@ export default function App() {
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', guests: '1', attendance: 'yes', message: '' });
+  const [timeRemaining, setTimeRemaining] = useState(() => Math.max(0, new Date(identity.weddingDate).getTime() - Date.now()));
 
   const audioRef = useRef(null);
   const containerRef = useRef(null);
@@ -139,32 +138,21 @@ export default function App() {
   })), []);
 
   useEffect(() => {
-    const styleTag = document.createElement('style');
-    styleTag.innerHTML = `
-      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@200;300;400;500&family=Great+Vibes&display=swap');
+    const updateCountdown = () => setTimeRemaining(Math.max(0, new Date(identity.weddingDate).getTime() - Date.now()));
+    updateCountdown();
+    const intervalId = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [identity.weddingDate]);
 
-      .font-great-vibes { font-family: 'Great Vibes', cursive; }
-      .font-serif { font-family: 'Cormorant Garamond', serif; }
-      .font-sans { font-family: 'Montserrat', sans-serif; }
-
-      html {
-        scroll-behavior: smooth;
-        overscroll-behavior-x: none;
-      }
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-    `;
-    document.head.appendChild(styleTag);
-
-    return () => {
-      document.head.removeChild(styleTag);
+  const countdown = useMemo(() => {
+    const totalSeconds = Math.floor(timeRemaining / 1000);
+    return {
+      days: Math.floor(totalSeconds / 86400),
+      hours: Math.floor((totalSeconds % 86400) / 3600),
+      minutes: Math.floor((totalSeconds % 3600) / 60),
+      seconds: totalSeconds % 60,
     };
-  }, []);
+  }, [timeRemaining]);
 
   useEffect(() => {
     if (galleryMode !== 'stack' || shouldReduceMotion) return undefined;
@@ -434,10 +422,10 @@ export default function App() {
       <AnimatePresence>
         {isAdminPasswordOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[75] flex items-center justify-center bg-[#16070B]/80 p-6 backdrop-blur-sm">
-            <motion.form initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} onSubmit={handleAdminPasswordSubmit} className="w-full max-w-sm rounded-3xl border border-[#C8A96A]/45 bg-[#451822] p-7 shadow-2xl">
+            <motion.form role="dialog" aria-modal="true" aria-labelledby="admin-access-title" initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} onSubmit={handleAdminPasswordSubmit} className="w-full max-w-sm rounded-3xl border border-[#C8A96A]/45 bg-[#451822] p-7 shadow-2xl">
               <p className="font-sans text-[10px] uppercase tracking-[0.3em] text-[#C8A96A]">Recognizing invitation...</p>
-              <h2 className="mt-3 font-serif text-3xl font-light text-[#F3E5E8]">Admin access</h2>
-              <label className="mt-6 block font-sans text-[10px] uppercase tracking-[0.2em] text-[#D4B8BC]">Password<input autoFocus type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-[#C8A96A]/35 bg-[#2A0D14] px-4 py-3 font-serif text-lg text-[#F3E5E8] outline-none" /></label>
+              <h2 id="admin-access-title" className="mt-3 font-serif text-3xl font-light text-[#F3E5E8]">Admin access</h2>
+              <label htmlFor="admin-password" className="mt-6 block font-sans text-[10px] uppercase tracking-[0.2em] text-[#D4B8BC]">Password</label><input id="admin-password" autoFocus required autoComplete="current-password" type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-[#C8A96A]/35 bg-[#2A0D14] px-4 py-3 font-serif text-lg text-[#F3E5E8] outline-none" />
               {adminPasswordError && <p className="mt-3 text-sm text-[#F3B5AD]">{adminPasswordError}</p>}
               <div className="mt-6 flex gap-3"><button type="button" onClick={() => setIsAdminPasswordOpen(false)} className="flex-1 rounded-full border border-[#C8A96A]/35 px-4 py-3 font-sans text-[10px] uppercase tracking-[0.2em] text-[#F3E5E8]">Cancel</button><button type="submit" disabled={isValidatingAdmin} className="flex-1 rounded-full bg-[#C8A96A] px-4 py-3 font-sans text-[10px] uppercase tracking-[0.2em] text-[#2A0D14] disabled:opacity-60">{isValidatingAdmin ? 'Checking...' : 'Continue'}</button></div>
             </motion.form>
@@ -500,11 +488,11 @@ export default function App() {
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 className="w-36 h-36 md:w-44 md:h-44 mb-6 relative flex items-center justify-center"
               >
-                <picture><source srcSet={logoWebp} type="image/webp" /><img src={logo} width="2000" height="2000" alt="C & C Logo" fetchPriority="high" className="h-full w-full object-contain filter drop-shadow-[0_0_20px_rgba(196,140,120,0.6)]" /></picture>
+              <img src={logoWebp} width="2000" height="2000" alt={identity.monogramAlt} fetchPriority="high" className="h-full w-full object-contain filter drop-shadow-[0_0_20px_rgba(196,140,120,0.6)]" />
               </motion.div>
 
               <p className="font-sans text-[10px] tracking-[0.4em] text-[#C48C78] uppercase mb-1">You Are Cordially Invited</p>
-              <h1 className="font-serif text-3xl md:text-4xl text-[#F3E5E8] font-light mb-8">Cloyd &amp; Cyrin</h1>
+              <h1 className="font-serif text-3xl md:text-4xl text-[#F3E5E8] font-light mb-8">{identity.coupleNames}</h1>
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -574,11 +562,11 @@ export default function App() {
                 Holy Matrimony
               </span>
               <blockquote className="font-serif italic text-xl md:text-3xl text-[#F3E5E8] leading-relaxed mb-6 drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-                “I have found the one my soul loves. I held him and would not let him go...”
+                “{opening.verse}”
               </blockquote>
               <div className="w-16 h-[1px] bg-[#C48C78]/60 mx-auto mb-3" />
               <p className="font-sans text-xs tracking-[0.3em] text-[#D4B8BC] uppercase font-medium">
-                Song of Solomon 3:4
+                {opening.citation}
               </p>
             </motion.div>
 
@@ -594,7 +582,7 @@ export default function App() {
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute inset-0 bg-[#C48C78]/30 rounded-full blur-2xl -z-10"
               />
-              <picture><source srcSet={bibleWebp} type="image/webp" /><img src={bible} width="598" height="372" alt="Holy Bible" fetchPriority="high" className="h-full w-full object-contain filter drop-shadow-[0_0_25px_rgba(196,140,120,0.6)]" /></picture>
+              <img src={bibleWebp} width="598" height="372" alt="Holy Bible" fetchPriority="high" className="h-full w-full object-contain filter drop-shadow-[0_0_25px_rgba(196,140,120,0.6)]" />
             </motion.div>
             <div className="absolute bottom-6 left-1/2 w-48 -translate-x-1/2 text-center" role="status" aria-live="polite">
               <p className="font-sans text-[9px] uppercase tracking-[0.24em] text-[#D4B8BC]">Preparing your experience</p>
@@ -783,7 +771,7 @@ export default function App() {
               transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="w-24 h-24 md:w-28 md:h-28 mb-5 relative flex items-center justify-center filter drop-shadow-[0_0_25px_rgba(196,140,120,0.6)]"
             >
-              <picture><source srcSet={logoWebp} type="image/webp" /><img src={logo} width="2000" height="2000" alt="C & C Logo" className="h-full w-full object-contain" /></picture>
+              <img src={logoWebp} width="2000" height="2000" alt={identity.monogramAlt} className="h-full w-full object-contain" />
             </motion.div>
 
             <motion.div 
@@ -804,7 +792,7 @@ export default function App() {
               className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8"
             >
               <h1 className="m-0 font-serif text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#F3E5E8] font-light drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-                Cloyd
+                {firstName}
               </h1>
               <motion.div 
                 animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.1, 1] }}
@@ -814,7 +802,7 @@ export default function App() {
                 &amp;
               </motion.div>
               <h1 className="m-0 font-serif text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#F3E5E8] font-light drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-                Cyrin
+                {secondName}
               </h1>
             </motion.div>
 
@@ -831,8 +819,11 @@ export default function App() {
               transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
               className="font-sans text-xs md:text-sm tracking-[0.35em] uppercase text-[#C48C78] font-semibold"
             >
-              Saturday, December 19, 2026
+              {new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(identity.weddingDate))}
             </motion.p>
+            <div className="mt-4 flex items-center justify-center gap-4 font-sans text-[#F3E5E8]" aria-label={`${countdown.days} days, ${countdown.hours} hours, ${countdown.minutes} minutes and ${countdown.seconds} seconds until the wedding`}>
+              {Object.entries(countdown).map(([label, value]) => <div key={label} className="min-w-10 text-center"><span className="block text-base font-medium tabular-nums">{String(value).padStart(2, '0')}</span><span className="text-[8px] uppercase tracking-[0.2em] text-[#C48C78]">{label}</span></div>)}
+            </div>
             <motion.p 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1064,13 +1055,13 @@ export default function App() {
                 >
                   <Calendar className="w-5 h-5" />
                 </motion.div>
-                <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">The Ceremony</h3>
-                <p className="text-xs font-semibold text-[#C48C78] mb-0.5">Saturday, December 19, 2026</p>
-                <p className="text-xs text-[#D4B8BC] mb-3">9:00 AM in the Morning</p>
-                <p className="text-[11px] font-semibold text-[#F3E5E8] tracking-widest uppercase mb-1">Our Lady of Salvation Parish</p>
-                <p className="text-[10px] text-[#D4B8BC] mb-4">Purok 6, Brgy. Cabacungan, La Castellana, Negros Occidental</p>
+                <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">{schedule.ceremony.title}</h3>
+                <p className="text-xs font-semibold text-[#C48C78] mb-0.5">{new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(schedule.ceremony.dateTime))}</p>
+                <p className="text-xs text-[#D4B8BC] mb-3">{schedule.ceremony.timeLabel}</p>
+                <p className="text-[11px] font-semibold text-[#F3E5E8] tracking-widest uppercase mb-1">{schedule.ceremony.venue}</p>
+                <p className="text-[10px] text-[#D4B8BC] mb-4">{schedule.ceremony.address}</p>
                 <a 
-                  href="https://www.google.com/maps/search/?api=1&query=Our+Lady+of+Salvation+Parish+Purok+6+Brgy+Cabacungan+La+Castellana+Negros+Occidental" 
+                  href={schedule.ceremony.mapUrl}
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="mt-auto inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#C48C78] hover:text-[#F3E5E8] font-semibold border-b border-[#C48C78] pb-0.5 transition-colors"
@@ -1091,7 +1082,7 @@ export default function App() {
                 whileHover={{ scale: 1.02 }}
                 className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/70 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300"
               >
-                <picture><source srcSet={receptionVenueWebp} type="image/webp" /><img src={receptionVenue} width="1333" height="1000" alt="F and C reception venue" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-100" /></picture>
+                <img src={receptionVenueWebp} width="720" height="540" alt="F and C reception venue" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-100" />
                 <div className="absolute inset-0 bg-[#16070B]/70" />
                 <div className="relative z-10 flex h-full flex-col items-center drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]">
                 <motion.div 
@@ -1101,13 +1092,13 @@ export default function App() {
                 >
                   <Clock className="w-5 h-5" />
                 </motion.div>
-                <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">The Reception</h3>
+                <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">{schedule.reception.title}</h3>
                 <p className="text-xs font-semibold text-[#C48C78] mb-0.5">Immediately Following Ceremony</p>
-                <p className="text-xs text-[#D4B8BC] mb-3">11:00 AM Onwards</p>
-                <p className="text-[11px] font-semibold text-[#F3E5E8] tracking-widest uppercase mb-1">F & C Guest House</p>
-                <p className="text-[10px] text-[#D4B8BC] mb-4">6223 Rizal St, Canlaon City, Negros Oriental</p>
+                <p className="text-xs text-[#D4B8BC] mb-3">{schedule.reception.timeLabel}</p>
+                <p className="text-[11px] font-semibold text-[#F3E5E8] tracking-widest uppercase mb-1">{schedule.reception.venue}</p>
+                <p className="text-[10px] text-[#D4B8BC] mb-4">{schedule.reception.address}</p>
                 <a 
-                  href="https://www.google.com/maps/search/?api=1&query=Our+Lady+of+Salvation+Parish+Purok+6+Brgy+Cabacungan+La+Castellana+Negros+Occidental" 
+                  href={schedule.reception.mapUrl}
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="mt-auto inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#C48C78] hover:text-[#F3E5E8] font-semibold border-b border-[#C48C78] pb-0.5 transition-colors"
@@ -1131,13 +1122,13 @@ export default function App() {
               >
                 <Shirt className="w-6 h-6 text-[#C48C78] mx-auto mb-2" />
                 <h3 className="text-lg font-serif font-light text-[#F3E5E8] mb-1">Dress Code</h3>
-                <p className="text-xs text-[#C48C78] font-medium mb-2">Rose Gold &amp; Burgundy</p>
+                <p className="text-xs text-[#C48C78] font-medium mb-2">{schedule.dressCode.name}</p>
                 <div className="flex justify-center gap-2 my-3" aria-label="Rose gold and burgundy dress-code palette">
                   {['#B76E79', '#B06676', '#A75D70', '#9E5268', '#954560', '#8C3655', '#842447', '#800020'].map((color) => (
                     <span key={color} className="h-5 w-5 rounded-full border border-[#F3E5E8]/30 shadow-md" style={{ backgroundColor: color }} />
                   ))}
                 </div>
-                <p className="text-[11px] text-[#D4B8BC] italic mt-1">Kindly wear your attire in Rose Gold or Burgundy tones.</p>
+                <p className="text-[11px] text-[#D4B8BC] italic mt-1">{schedule.dressCode.description}</p>
               </motion.div>
 
               <motion.div 
@@ -1148,9 +1139,9 @@ export default function App() {
                 className="flex flex-col justify-center rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/50 p-5 text-center shadow-lg transition-all"
               >
                 <Gift className="w-6 h-6 text-[#C48C78] mx-auto mb-2" />
-                <h3 className="text-lg font-serif font-light text-[#F3E5E8] mb-1">Gift Registry</h3>
-                <p className="text-xs text-[#D4B8BC] mb-2">Your presence is our greatest gift. Monetary contributions are warmly appreciated.</p>
-                <p className="text-[11px] font-semibold text-[#C48C78] tracking-wider">GCash / Bank Transfer details available upon request.</p>
+                <h3 className="text-lg font-serif font-light text-[#F3E5E8] mb-1">{gifts[0]?.title ?? 'Gift Registry'}</h3>
+                <p className="text-xs text-[#D4B8BC] mb-2">{gifts[0]?.description}</p>
+                <p className="text-[11px] font-semibold text-[#C48C78] tracking-wider">{gifts[0]?.details}</p>
               </motion.div>
 
             </div>
@@ -1173,7 +1164,7 @@ export default function App() {
               <div className="text-center mb-6">
                 <span className="text-xs uppercase tracking-[0.4em] text-[#C48C78] font-semibold block mb-2">Be Our Guest</span>
                 <h3 className="text-3xl font-serif font-light text-[#F3E5E8]">RSVP</h3>
-                <p className="text-xs text-[#D4B8BC] mt-1">Kindly respond on or before November 19, 2026</p>
+                <p className="text-xs text-[#D4B8BC] mt-1">Kindly respond on or before {new Intl.DateTimeFormat('en-PH', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(rsvp.deadline))}</p>
               </div>
 
               <AnimatePresence mode="wait">
@@ -1187,8 +1178,10 @@ export default function App() {
                     className="space-y-4"
                   >
                     <div>
-                      <label className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Full Name</label>
+                      <label htmlFor="rsvp-name" className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Full Name</label>
                       <input 
+                        id="rsvp-name"
+                        autoComplete="name"
                         type="text" 
                         required
                         placeholder="Enter your full name"
@@ -1200,8 +1193,9 @@ export default function App() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Attendance</label>
+                        <label htmlFor="rsvp-attendance" className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Attendance</label>
                         <select 
+                          id="rsvp-attendance"
                           value={formData.attendance}
                           onChange={(e) => setFormData({...formData, attendance: e.target.value})}
                           className="w-full bg-[#2A0D14] border border-[#C48C78]/50 rounded-xl px-4 py-2.5 text-sm text-[#F3E5E8] focus:outline-none focus:border-[#C48C78] transition-colors"
@@ -1212,8 +1206,9 @@ export default function App() {
                       </div>
 
                       <div>
-                        <label className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Number of Guests</label>
+                        <label htmlFor="rsvp-guests" className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Number of Guests</label>
                         <select 
+                          id="rsvp-guests"
                           value={formData.guests}
                           onChange={(e) => setFormData({...formData, guests: e.target.value})}
                           className="w-full bg-[#2A0D14] border border-[#C48C78]/50 rounded-xl px-4 py-2.5 text-sm text-[#F3E5E8] focus:outline-none focus:border-[#C48C78] transition-colors"
@@ -1226,8 +1221,9 @@ export default function App() {
                     </div>
 
                     <div>
-                      <label className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Wishes for the Couple</label>
+                      <label htmlFor="rsvp-message" className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Wishes for the Couple</label>
                       <textarea 
+                        id="rsvp-message"
                         rows="2"
                         placeholder="Leave a sweet message..."
                         value={formData.message}
@@ -1266,7 +1262,7 @@ export default function App() {
                     transition={{ duration: 0.5 }}
                     className="text-center py-8 space-y-4"
                   >
-                    <CheckCircle2 className="w-14 h-14 text-[#C48C78] mx-auto animate-bounce" />
+                    <CheckCircle2 className="w-14 h-14 text-[#C48C78] mx-auto" />
                     <h4 className="text-2xl font-serif text-[#F3E5E8]">Thank You, {formData.name}!</h4>
                     <p className="text-sm text-[#D4B8BC] max-w-md mx-auto">
                       {formData.attendance === 'yes' 
@@ -1284,6 +1280,19 @@ export default function App() {
                 )}
               </AnimatePresence>
             </motion.div>
+            <div className="mt-8 space-y-3 text-left">
+              <h3 className="text-center font-serif text-2xl font-light text-[#F3E5E8]">A Few Helpful Notes</h3>
+              {faqs.map((faq) => (
+                <details key={faq.id} className="rounded-2xl border border-[#C48C78]/30 bg-[#451822]/55 px-5 py-4">
+                  <summary className="cursor-pointer font-serif text-lg text-[#F3E5E8]">{faq.question}</summary>
+                  <p className="mt-2 text-sm leading-relaxed text-[#D4B8BC]">{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+            <footer className="pb-8 pt-10 text-center">
+              <p className="font-serif italic text-lg text-[#F3E5E8]">Thank you for being part of our story.</p>
+              <p className="mt-3 font-sans text-[9px] uppercase tracking-[0.2em] text-[#C48C78]">{branding.signature}</p>
+            </footer>
           </div>
         </section>
 

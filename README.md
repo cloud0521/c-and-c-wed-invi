@@ -1,16 +1,44 @@
-# React + Vite
+# Cloyd & Cyrin — Digital Wedding Invitation
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A React, Vite, Tailwind CSS, Framer Motion, and Supabase wedding experience.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```powershell
+npm install
+npm run dev
+```
 
-## React Compiler
+The npm scripts invoke their local Node entry points directly. This keeps them
+working on Windows even when a parent folder contains an ampersand (`&`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Production checks
 
-## Expanding the Oxlint configuration
+```powershell
+npm run lint
+npm run build
+npm run preview
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Supabase setup
+
+1. Create a Supabase project.
+2. For a new database, run `supabase/migrations/20260806_create_rsvp_dashboard.sql` in the SQL editor. If the RSVP tables already exist, run `supabase/migrations/20260806_add_secure_admin_configuration.sql` instead.
+3. In the SQL editor, configure a unique administrator password of at least 12 characters:
+
+```sql
+select public.configure_invitation_admin('replace-with-a-long-unique-password'::text);
+```
+
+4. Copy `.env.example` to `.env.local` and provide the project URL and publishable key.
+5. Never commit `.env.local` or the administrator password.
+
+Guests can only insert RSVP records. The dashboard read operation validates the
+administrator password inside a security-definer database function; raw password
+values are never stored.
+
+## Wedding content
+
+The canonical wedding data is in `src/data/weddings/cloyd-cyrin.ts`. Update the
+couple, schedule, locations, dress code, gifts, RSVP deadline, FAQs, and brand
+signature there rather than duplicating content in components.

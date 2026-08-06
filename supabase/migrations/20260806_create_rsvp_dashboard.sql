@@ -15,9 +15,8 @@ create table if not exists public.invitation_admins (
   role text not null check (role in ('admin'))
 );
 
-insert into public.invitation_admins (username, password_hash, role)
-values ('wed-invi-admin', extensions.crypt('samplepass', extensions.gen_salt('bf')), 'admin')
-on conflict (username) do update set password_hash = excluded.password_hash, role = excluded.role;
+-- Never seed a shared/default password. Configure the administrator once from
+-- the Supabase SQL editor after this migration (instructions are in README.md).
 
 alter table public.rsvp_submissions enable row level security;
 alter table public.invitation_admins enable row level security;
@@ -53,3 +52,24 @@ $$;
 
 revoke all on function public.get_rsvp_dashboard(text, text) from public;
 grant execute on function public.get_rsvp_dashboard(text, text) to anon, authenticated;
+
+create or replace function public.configure_invitation_admin(p_password text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if char_length(p_password) < 12 then
+    raise exception 'Administrator password must contain at least 12 characters';
+  end if;
+
+  insert into public.invitation_admins (username, password_hash, role)
+  values ('wed-invi-admin', extensions.crypt(p_password, extensions.gen_salt('bf')), 'admin')
+  on conflict (username) do update
+    set password_hash = excluded.password_hash, role = excluded.role;
+end;
+$$;
+
+revoke all on function public.configure_invitation_admin(text) from public;
+revoke all on function public.configure_invitation_admin(text) from anon, authenticated;
