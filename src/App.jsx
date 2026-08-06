@@ -85,6 +85,7 @@ export default function App() {
 
   const audioRef = useRef(null);
   const containerRef = useRef(null);
+  const openingStartedRef = useRef(false);
 
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1URaiEBwsvvp5ZddvHNaot_6iFGHdMYNMNG37GPRyQ5UU1o2WFc8ZIkRckbhcqTVQKw/exec';
 
@@ -116,6 +117,9 @@ export default function App() {
   }, []);
 
   const handleOpenInvitation = () => {
+    if (openingStartedRef.current) return;
+    openingStartedRef.current = true;
+
     if (audioRef.current) {
       audioRef.current.currentTime = 2;
       audioRef.current.volume = 0.4;
@@ -128,13 +132,9 @@ export default function App() {
 
     setPhase('bible');
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       setPhase('curtains');
-    }, 8500);
-
-    setTimeout(() => {
-      setPhase('ready');
-    }, 10700);
+    }, 5400);
   };
 
   const handleScroll = (e) => {
@@ -180,7 +180,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-[#36121A] text-[#F3E5E8] font-serif selection:bg-[#C48C78]/30 selection:text-[#36121A] h-screen w-screen overflow-hidden relative antialiased flex flex-col">
+    <div className="bg-[#36121A] text-[#F3E5E8] font-serif selection:bg-[#C48C78]/30 selection:text-[#36121A] h-[100svh] w-screen overflow-hidden relative antialiased flex flex-col">
       
       <audio ref={audioRef} loop src="/bg-music.mp3" preload="auto" />
 
@@ -348,6 +348,7 @@ export default function App() {
             <motion.div
               initial={{ x: '0%' }}
               animate={{ x: '-100%' }}
+              onAnimationComplete={() => setPhase('ready')}
               transition={{ duration: 2.2, ease: [0.77, 0, 0.175, 1] }}
               className="w-1/2 h-full bg-[#2A0D14] border-r border-[#C48C78]/20 relative shadow-2xl"
             >
@@ -365,6 +366,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {phase === 'ready' && <>
       {/* TOP HEADER WITH MAGICAL TEXT ANIMATIONS */}
       <header className="absolute top-0 left-0 right-0 px-6 py-6 flex justify-between items-center z-30 max-w-7xl mx-auto pointer-events-none">
         <motion.div 
@@ -438,28 +440,28 @@ export default function App() {
       <main 
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 h-screen w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar relative"
+        className="flex-1 h-[100svh] w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar relative"
       >
         
         {/* SECTION 0: HERO (CHAPTER 1) WITH MAGICAL CURTAIN-REVEAL ANIMATIONS */}
-        <section className="h-screen w-full snap-start snap-always flex flex-col items-center justify-center text-center px-6 relative overflow-hidden">
+        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center text-center px-6 relative overflow-hidden">
           
           {/* Glowing Magical Aura Burst on Reveal */}
           <motion.div 
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: [0.6, 1.4, 1], opacity: [0, 0.5, 0.25] }}
             transition={{ duration: 2, ease: "easeOut" }}
-            className="absolute w-[500px] h-[500px] rounded-full bg-gradient-to-r from-[#C48C78]/20 via-[#b08d57]/15 to-transparent blur-3xl pointer-events-none"
+            className="hidden md:block absolute w-[500px] h-[500px] rounded-full bg-gradient-to-r from-[#C48C78]/20 via-[#b08d57]/15 to-transparent blur-3xl pointer-events-none"
           />
 
           <motion.div 
             animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute w-64 h-64 rounded-full bg-[#C48C78]/10 blur-3xl pointer-events-none"
+            className="hidden md:block absolute w-64 h-64 rounded-full bg-[#C48C78]/10 blur-3xl pointer-events-none"
           />
 
           {/* Floating magical sparkles behind Chapter 1 content */}
-          <div className="absolute inset-0 pointer-events-none">
+          <div className="hidden md:block absolute inset-0 pointer-events-none">
             {[...Array(15)].map((_, i) => (
               <motion.div
                 key={i}
@@ -521,7 +523,7 @@ export default function App() {
               transition={{ duration: 1.2, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8"
             >
-              <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#F3E5E8] font-light drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+              <h1 className="m-0 font-serif text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#F3E5E8] font-light drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 Cloyd
               </h1>
               <motion.div 
@@ -531,7 +533,7 @@ export default function App() {
               >
                 &amp;
               </motion.div>
-              <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#F3E5E8] font-light drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+              <h1 className="m-0 font-serif text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#F3E5E8] font-light drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                 Cyrin
               </h1>
             </motion.div>
@@ -563,7 +565,7 @@ export default function App() {
         </section>
 
         {/* SECTION 1: OUR LOVE STORY */}
-        <section className="h-screen w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-4xl mx-auto overflow-y-auto no-scrollbar py-16">
+        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-4xl mx-auto overflow-y-auto no-scrollbar py-16">
           <div className="w-full text-center">
             <motion.div 
               initial="hidden"
@@ -608,7 +610,7 @@ export default function App() {
         </section>
 
         {/* SECTION 2: CAPTURED MOMENTS */}
-        <section className="h-screen w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-5xl mx-auto overflow-y-auto no-scrollbar py-16">
+        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-5xl mx-auto overflow-y-auto no-scrollbar py-16">
           <div className="w-full text-center">
             <motion.div 
               initial="hidden"
@@ -661,7 +663,7 @@ export default function App() {
         </section>
 
         {/* SECTION 3: CEREMONY & RECEPTION */}
-        <section className="h-screen w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-5xl mx-auto overflow-y-auto no-scrollbar py-16">
+        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-5xl mx-auto overflow-y-auto no-scrollbar py-16">
           <div className="w-full">
             <motion.div 
               initial="hidden"
@@ -786,7 +788,7 @@ export default function App() {
         </section>
 
         {/* SECTION 4: RSVP */}
-        <section className="h-screen w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-xl mx-auto overflow-y-auto no-scrollbar py-16">
+        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-xl mx-auto overflow-y-auto no-scrollbar py-16">
           <div className="w-full">
             <motion.div 
               initial="hidden"
@@ -938,6 +940,8 @@ export default function App() {
           </motion.div>
         </motion.button>
       </div>
+
+      </>}
 
     </div>
   );
