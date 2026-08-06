@@ -106,6 +106,10 @@ export default function App() {
   const galleryTriggerRef = useRef(null);
   const restoreGalleryFocusRef = useRef(false);
   const shouldReduceMotion = useReducedMotion();
+  const isMessengerInAppBrowser = useMemo(() => (
+    typeof navigator !== 'undefined' && /FBAN|FBAV|Messenger/i.test(navigator.userAgent)
+  ), []);
+  const canSwipeGallery = !shouldReduceMotion && !isMessengerInAppBrowser;
   const bibleParticles = useMemo(() => Array.from({ length: 12 }, () => ({
     size: Math.random() * 3 + 2,
     left: `${40 + Math.random() * 20}%`,
@@ -136,6 +140,7 @@ export default function App() {
 
       html {
         scroll-behavior: smooth;
+        overscroll-behavior-x: none;
       }
       .no-scrollbar::-webkit-scrollbar {
         display: none;
@@ -706,7 +711,7 @@ export default function App() {
       <main 
         ref={containerRef}
         onScroll={handleScroll}
-        className="relative z-10 flex-1 h-[100svh] w-full overflow-y-scroll scroll-smooth no-scrollbar md:snap-y md:snap-mandatory"
+        className="relative z-10 flex-1 h-[100svh] w-full touch-pan-y overscroll-x-none overflow-y-scroll scroll-smooth no-scrollbar md:snap-y md:snap-mandatory"
       >
         
         {/* SECTION 0: HERO (CHAPTER 1) WITH MAGICAL CURTAIN-REVEAL ANIMATIONS */}
@@ -969,7 +974,7 @@ export default function App() {
                     transition={{ duration: shouldReduceMotion ? 0.2 : 0.46, ease: [0.16, 1, 0.3, 1] }}
                     onClick={(event) => event.stopPropagation()}
                     onPointerDown={() => setGalleryIdleTick((tick) => tick + 1)}
-                    className="relative w-full max-w-3xl"
+                    className="relative w-full max-w-3xl touch-pan-y overscroll-x-none"
                   >
                     <div className="relative overflow-hidden rounded-[1.75rem] border border-[#C48C78]/35 bg-[#451822] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.38)]">
                       <motion.div key={`previous-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -left-[21%] w-[42%] overflow-hidden rounded-[1.35rem] blur-[1px]">
@@ -988,13 +993,13 @@ export default function App() {
                         animate="center"
                         exit="exit"
                         transition={{ duration: shouldReduceMotion ? 0.2 : 0.56, ease: [0.22, 1, 0.36, 1] }}
-                        drag={shouldReduceMotion ? false : 'x'}
+                        drag={canSwipeGallery ? 'x' : false}
                         dragConstraints={{ left: 0, right: 0 }}
                         dragElastic={0.08}
                         onDragEnd={(_, info) => {
                           if (Math.abs(info.offset.x) > 45) moveGallery(info.offset.x > 0 ? -1 : 1);
                         }}
-                        className="absolute inset-0 m-0 overflow-hidden rounded-[1.35rem]"
+                        className="absolute inset-0 m-0 touch-pan-y overflow-hidden rounded-[1.35rem]"
                       >
                         <img src={galleryPhotos[activeGalleryIndex].img} alt={galleryPhotos[activeGalleryIndex].caption} className="h-full w-full object-cover" />
                         <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#2A0D14]/90 to-transparent px-6 pb-6 pt-16 font-serif text-xl text-[#F3E5E8]">{galleryPhotos[activeGalleryIndex].caption}</figcaption>
@@ -1004,6 +1009,7 @@ export default function App() {
                       <button type="button" onClick={() => moveGallery(-1)} className="absolute left-[8%] top-1/2 -translate-y-1/2 rounded-full border border-[#F3E5E8]/30 bg-[#2A0D14]/75 p-2 text-[#F3E5E8] backdrop-blur-sm" aria-label="Previous photo"><ChevronLeft className="h-5 w-5" /></button>
                       <button type="button" onClick={() => moveGallery(1)} className="absolute right-[8%] top-1/2 -translate-y-1/2 rounded-full border border-[#F3E5E8]/30 bg-[#2A0D14]/75 p-2 text-[#F3E5E8] backdrop-blur-sm" aria-label="Next photo"><ChevronRight className="h-5 w-5" /></button>
                     </div>
+                    {isMessengerInAppBrowser && <p className="mt-4 text-center font-sans text-[9px] uppercase tracking-[0.22em] text-[#D4B8BC]">Use the arrows to explore the album</p>}
                     <button type="button" onClick={closeGalleryCarousel} className="mx-auto mt-5 block font-sans text-[10px] uppercase tracking-[0.28em] text-[#C48C78] transition-colors hover:text-[#F3E5E8]">Close album</button>
                   </motion.section>
                 </motion.div>
