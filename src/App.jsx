@@ -24,17 +24,17 @@ const chapters = [
 
 const timelineEvents = [
   {
-    year: "Chapter I",
+    year: "Chapter 2.1",
     title: "High School Days",
     description: "We crossed paths as schoolmates and officially became a couple, marking the sweet beginning of our journey."
   },
   {
-    year: "Chapter II",
+    year: "Chapter 2.2",
     title: "The Separation",
     description: "Not even a full month had passed before life parted our ways, leading to seven long years of walking separate paths."
   },
   {
-    year: "Chapter III",
+    year: "Chapter 2.3",
     title: "Destiny's Return",
     description: "Seven years later, destiny brought us back together, proving that what is truly meant to be will always find its way home."
   }
@@ -114,6 +114,13 @@ export default function App() {
     driftEnd: (Math.random() - 0.5) * 200,
     duration: Math.random() * 2.5 + 2,
     delay: Math.random() * 1.5,
+  })), []);
+  const ambientGlitters = useMemo(() => Array.from({ length: 14 }, () => ({
+    size: Math.random() * 2 + 1,
+    left: `${8 + Math.random() * 84}%`,
+    top: `${8 + Math.random() * 80}%`,
+    duration: Math.random() * 3 + 4,
+    delay: Math.random() * 3,
   })), []);
 
   useEffect(() => {
@@ -609,6 +616,21 @@ export default function App() {
       </AnimatePresence>
 
       {phase === 'ready' && <>
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {ambientGlitters.map((glitter, index) => (
+          <motion.span
+            key={index}
+            className="absolute rounded-full bg-[#F7E8B4] shadow-[0_0_8px_rgba(247,232,180,0.75)]"
+            style={{ width: glitter.size, height: glitter.size, left: glitter.left, top: glitter.top }}
+            animate={shouldReduceMotion
+              ? { opacity: 0.28 }
+              : { opacity: [0.08, 0.62, 0.12], scale: [0.75, 1.45, 0.8] }}
+            transition={shouldReduceMotion
+              ? { duration: 0 }
+              : { duration: glitter.duration, delay: glitter.delay, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }}
+          />
+        ))}
+      </div>
       {/* TOP HEADER WITH MAGICAL TEXT ANIMATIONS */}
       <header className="absolute top-0 left-0 right-0 px-6 py-6 flex justify-between items-center z-30 max-w-7xl mx-auto pointer-events-none">
         <motion.div 
@@ -682,7 +704,7 @@ export default function App() {
       <main 
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 h-[100svh] w-full overflow-y-scroll scroll-smooth no-scrollbar relative md:snap-y md:snap-mandatory"
+        className="relative z-10 flex-1 h-[100svh] w-full overflow-y-scroll scroll-smooth no-scrollbar md:snap-y md:snap-mandatory"
       >
         
         {/* SECTION 0: HERO (CHAPTER 1) WITH MAGICAL CURTAIN-REVEAL ANIMATIONS */}
@@ -731,7 +753,7 @@ export default function App() {
 
           <motion.div 
             initial="hidden"
-            animate="visible"
+            animate={activeSection === 0 ? 'visible' : 'hidden'}
             variants={magicalHeroVariant}
             className="max-w-4xl mx-auto pt-8 relative z-10 flex flex-col items-center"
           >
@@ -812,7 +834,7 @@ export default function App() {
             <motion.div 
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
+              viewport={{ once: false, amount: 0.65 }}
               variants={fadeInUp}
               className="mb-10"
             >
@@ -822,18 +844,18 @@ export default function App() {
             </motion.div>
 
             <div className="relative border-l border-[#C48C78]/40 ml-4 md:ml-24 text-left space-y-10">
-              {timelineEvents.map((item, index) => (
+              {timelineEvents.map((item) => (
                 <motion.div 
-                  key={index}
+                  key={item.year}
                   initial="hidden"
                   whileInView="visible"
-                  viewport={{ once: true, margin: "-50px" }}
+                  viewport={{ once: false, amount: 0.55 }}
                   variants={{
                     hidden: { opacity: 0, x: -30 },
                     visible: { 
                       opacity: 1, 
                       x: 0,
-                      transition: { duration: 0.8, delay: index * 0.2, ease: "easeOut" }
+                      transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
                     }
                   }}
                   className="relative pl-8 md:pl-10 group"
