@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Calendar, MapPin, Clock, Shirt, Gift, CheckCircle2, ChevronLeft, ChevronRight, Send, Loader2 } from 'lucide-react';
 
@@ -10,6 +10,7 @@ import p3 from './assets/p3.jpg';
 import churchVenue from './assets/our-lady-of-salvation-parish.jpg';
 import receptionVenue from './assets/fc-reception.jpg';
 import CoordinatorMode from './components/dashboard/CoordinatorMode';
+import { supabase } from './lib/supabase';
 
 const RSVPDashboard = lazy(() => import('./components/dashboard/RSVPDashboard'));
 
@@ -44,6 +45,8 @@ const galleryPhotos = [
   { img: p2, caption: "Exploring Together" },
   { img: p3, caption: "By the Sea" }
 ];
+
+const experienceImageAssets = [logo, bible, p1, p2, p3, churchVenue, receptionVenue];
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
@@ -89,6 +92,7 @@ export default function App() {
   const [isValidatingAdmin, setIsValidatingAdmin] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
   const [dashboardRows, setDashboardRows] = useState([]);
+  const [loadedImageCount, setLoadedImageCount] = useState(0);
   
   // RSVP Form States
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
@@ -101,6 +105,15 @@ export default function App() {
   const galleryTriggerRef = useRef(null);
   const restoreGalleryFocusRef = useRef(false);
   const shouldReduceMotion = useReducedMotion();
+  const bibleParticles = useMemo(() => Array.from({ length: 12 }, () => ({
+    size: Math.random() * 3 + 2,
+    left: `${40 + Math.random() * 20}%`,
+    rise: -320 - Math.random() * 150,
+    driftStart: (Math.random() - 0.5) * 100,
+    driftEnd: (Math.random() - 0.5) * 200,
+    duration: Math.random() * 2.5 + 2,
+    delay: Math.random() * 1.5,
+  })), []);
 
   useEffect(() => {
     const styleTag = document.createElement('style');
@@ -130,14 +143,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (galleryMode !== 'stack') return undefined;
+    if (galleryMode !== 'stack' || shouldReduceMotion || window.matchMedia('(max-width: 767px)').matches) return undefined;
 
     const intervalId = window.setInterval(() => {
       setActiveGalleryIndex((currentIndex) => (currentIndex + 1) % galleryPhotos.length);
     }, 6500);
 
     return () => window.clearInterval(intervalId);
-  }, [galleryMode]);
+  }, [galleryMode, shouldReduceMotion]);
 
   useEffect(() => {
     if (galleryMode !== 'carousel') return undefined;
@@ -184,6 +197,49 @@ export default function App() {
     }
   }, [activeSection, galleryMode]);
 
+  useEffect(() => {
+    if (phase !== 'bible') return undefined;
+
+    let isCancelled = false;
+    let transitionTimeoutId;
+    const startedAt = Date.now();
+    setLoadedImageCount(0);
+
+    const preloadImage = (source) => new Promise((resolve) => {
+      const image = new Image();
+      let isSettled = false;
+      const finish = async () => {
+        if (isSettled) return;
+        isSettled = true;
+        try {
+          await image.decode?.();
+        } catch {
+          // A decoded image is preferred, but an image that loaded is still ready to display.
+        }
+        if (!isCancelled) setLoadedImageCount((count) => count + 1);
+        resolve();
+      };
+
+      image.onload = finish;
+      image.onerror = finish;
+      image.src = source;
+      if (image.complete) finish();
+    });
+
+    Promise.all(experienceImageAssets.map(preloadImage)).then(() => {
+      if (isCancelled) return;
+      const remainingVerseTime = Math.max(0, 2400 - (Date.now() - startedAt));
+      transitionTimeoutId = window.setTimeout(() => {
+        if (!isCancelled) setPhase('curtains');
+      }, remainingVerseTime);
+    });
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(transitionTimeoutId);
+    };
+  }, [phase]);
+
   const handleOpenInvitation = () => {
     if (openingStartedRef.current) return;
     openingStartedRef.current = true;
@@ -200,9 +256,6 @@ export default function App() {
 
     setPhase('bible');
 
-    window.setTimeout(() => {
-      setPhase('curtains');
-    }, 5400);
   };
 
   const handleScroll = (e) => {
@@ -262,7 +315,6 @@ export default function App() {
     setIsSubmitting(true);
 
     try {
-      const { supabase } = await import('./lib/supabase');
       const { error } = await supabase.from('rsvp_submissions').insert({
         full_name: formData.name.trim(),
         attendance: formData.attendance,
@@ -290,7 +342,6 @@ export default function App() {
     setAdminPasswordError('');
 
     try {
-      const { supabase } = await import('./lib/supabase');
       const { data, error } = await supabase.rpc('get_rsvp_dashboard', {
         p_username: 'wed-invi-admin',
         p_password: adminPassword,
@@ -429,26 +480,26 @@ export default function App() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_75%,rgba(196,140,120,0.25),transparent_60%)] pointer-events-none" />
 
             <div className="absolute inset-0 pointer-events-none">
-              {[...Array(20)].map((_, i) => (
+              {bibleParticles.map((particle, i) => (
                 <motion.div
                   key={i}
                   className="absolute rounded-full bg-[#e6d5bc]"
                   style={{
-                    width: Math.random() * 4 + 2,
-                    height: Math.random() * 4 + 2,
-                    left: `${40 + Math.random() * 20}%`,
+                    width: particle.size,
+                    height: particle.size,
+                    left: particle.left,
                     bottom: '25%',
                   }}
                   animate={{
-                    y: [0, -320 - Math.random() * 150],
-                    x: [(Math.random() - 0.5) * 100, (Math.random() - 0.5) * 200],
+                    y: [0, particle.rise],
+                    x: [particle.driftStart, particle.driftEnd],
                     opacity: [0, 0.8, 0],
                     scale: [0.5, 1.2, 0],
                   }}
                   transition={{
-                    duration: Math.random() * 2.5 + 2,
+                    duration: particle.duration,
                     repeat: Infinity,
-                    delay: Math.random() * 1.5,
+                    delay: particle.delay,
                     ease: "easeOut",
                   }}
                 />
@@ -494,6 +545,16 @@ export default function App() {
                 className="w-full h-full object-contain filter drop-shadow-[0_0_25px_rgba(196,140,120,0.6)]"
               />
             </motion.div>
+            <div className="absolute bottom-6 left-1/2 w-48 -translate-x-1/2 text-center" role="status" aria-live="polite">
+              <p className="font-sans text-[9px] uppercase tracking-[0.24em] text-[#D4B8BC]">Preparing your experience</p>
+              <div className="mt-2 h-px overflow-hidden bg-[#C48C78]/25">
+                <motion.div
+                  className="h-full bg-[#C48C78]"
+                  animate={{ width: `${(loadedImageCount / experienceImageAssets.length) * 100}%` }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                />
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -809,9 +870,9 @@ export default function App() {
                         }}
                         transition={{ duration: 1.55, ease: [0.16, 1, 0.3, 1] }}
                         style={{ zIndex: galleryPhotos.length - photo.stackPosition }}
-                        className="absolute inset-0 overflow-hidden rounded-[1.75rem] border border-[#C48C78]/35 bg-[#451822] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.38)]"
+                        className="absolute inset-0 transform-gpu overflow-hidden rounded-[1.75rem] border border-[#C48C78]/35 bg-[#451822] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.38)] [backface-visibility:hidden] will-change-transform"
                       >
-                        <img src={photo.img} alt={photo.caption} className="h-full w-full rounded-[1.35rem] object-cover" />
+                        <img src={photo.img} alt={photo.caption} draggable="false" className="h-full w-full rounded-[1.35rem] object-cover [backface-visibility:hidden]" />
                         {photo.stackPosition === 0 && (
                           <div className="absolute inset-x-2 bottom-2 rounded-b-[1.35rem] bg-gradient-to-t from-[#2A0D14]/90 via-[#2A0D14]/30 to-transparent px-5 pb-5 pt-12">
                             <p className="font-serif text-lg text-[#F3E5E8]">{photo.caption}</p>
@@ -898,7 +959,7 @@ export default function App() {
         </section>
 
         {/* SECTION 3: CEREMONY & RECEPTION */}
-        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-5xl mx-auto overflow-y-auto no-scrollbar py-16">
+        <section className="min-h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-start px-6 py-12 md:h-[100svh] md:max-w-5xl md:justify-center md:px-20 md:py-16 mx-auto">
           <div className="w-full">
             <motion.div 
               initial="hidden"
