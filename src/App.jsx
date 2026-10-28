@@ -747,7 +747,7 @@ export default function App() {
       <main 
         ref={containerRef}
         onScroll={handleScroll}
-        className="relative z-10 flex-1 h-[100svh] w-full touch-pan-y overscroll-x-none overflow-y-scroll scroll-smooth no-scrollbar md:snap-y md:snap-mandatory"
+        className="relative z-10 flex-1 h-[100svh] w-full touch-pan-y overscroll-x-none overflow-y-scroll scroll-smooth snap-y snap-mandatory no-scrollbar"
       >
         
         {/* SECTION 0: HERO (CHAPTER 1) WITH MAGICAL CURTAIN-REVEAL ANIMATIONS */}
