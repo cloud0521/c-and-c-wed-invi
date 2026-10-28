@@ -31,6 +31,13 @@ export interface FAQItem {
   answer: string;
 }
 
+export interface WeddingNote {
+  id: string;
+  title: string;
+  description?: string;
+  icon?: string;
+}
+
 export interface EntourageMember {
   id: string;
   name: string;
@@ -50,10 +57,11 @@ export interface WeddingExperience {
     signature: string;
   };
   opening: {
-    verse: string;
-    citation: string;
+    verse?: string;
+    citation?: string;
     musicSrc?: string;
   };
+  closing?: { message: string; visible?: boolean };
   templateId: string;
   schedule: {
     ceremony: EventDetails;
@@ -68,6 +76,7 @@ export interface WeddingExperience {
   gallery: GalleryItem[];
   entourage: EntourageMember[];
   gifts: GiftOption[];
+  notes?: WeddingNote[];
   rsvp: RSVPConfig;
   faqs: FAQItem[];
 }

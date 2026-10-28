@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Calendar, MapPin, Clock, Shirt, Gift, CheckCircle2, ChevronLeft, ChevronRight, Send, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Clock, Shirt, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, Send, Loader2 } from 'lucide-react';
 
 import logoWebp from './logo.webp';
 import bibleWebp from './assets/bible.webp';
@@ -10,20 +10,31 @@ import p2Small from './assets/p2-720.webp';
 import p2Large from './assets/p2-1200.webp';
 import p3Small from './assets/p3-720.webp';
 import p3Large from './assets/p3-1200.webp';
-import churchVenue from './assets/our-lady-of-salvation-parish.jpg';
+import dsc01656 from './assets/DSC01656.jpg';
+import dsc01633 from './assets/DSC01633.jpg';
+import dsc02216 from './assets/DSC02216.jpg';
+import dsc02234 from './assets/DSC02234.jpg';
+import churchVenue from './assets/st-joseph-parish-interior.png';
+import principalAttireImage from './assets/attire-principal.png';
+import guestAttireImage from './assets/attire-guests.png';
+import entourageAttireImage from './assets/attire-entourage.png';
+import andCalligraphy from './assets/and-calligraphy.png';
+import welcomeCouple from './assets/welcome-couple.png';
+import receptionVenue from './assets/fc-reception.jpg';
 import receptionVenueWebp from './assets/fc-reception-720.webp';
 import CoordinatorMode from './components/dashboard/CoordinatorMode';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { useWeddingExperience } from './contexts/WeddingExperienceContext';
+import WeddingEntourage from './components/entourage/WeddingEntourage';
 
 const RSVPDashboard = lazy(() => import('./components/dashboard/RSVPDashboard'));
 
-const chapters = [
-  { id: 0, title: 'The Invitation', subtitle: 'Chapter I' },
-  { id: 1, title: 'Our Love Story', subtitle: 'Chapter II' },
-  { id: 2, title: 'Captured Moments', subtitle: 'Chapter III' },
-  { id: 3, title: 'Ceremony & Reception', subtitle: 'Chapter IV' },
-  { id: 4, title: 'RSVP', subtitle: 'Chapter V' },
+const chapterTitles = [
+  ['The Invitation', 'Chapter I'],
+  ['Our Love Story', 'Chapter II'],
+  ['Captured Moments', 'Chapter III'],
+  ['Wedding Entourage', 'Chapter IV'],
+  ['Wedding Details', 'Chapter V'],
 ];
 
 const timelineEvents = [
@@ -47,7 +58,11 @@ const timelineEvents = [
 const galleryPhotos = [
   { img: p1Small, webpSrcSet: `${p1Small} 720w, ${p1Large} 1200w`, preloadSrc: p1Large, caption: "A Playful Moment" },
   { img: p2Small, webpSrcSet: `${p2Small} 720w, ${p2Large} 1200w`, preloadSrc: p2Large, caption: "Exploring Together" },
-  { img: p3Small, webpSrcSet: `${p3Small} 720w, ${p3Large} 1200w`, preloadSrc: p3Large, caption: "By the Sea" }
+  { img: p3Small, webpSrcSet: `${p3Small} 720w, ${p3Large} 1200w`, preloadSrc: p3Large, caption: "By the Sea" },
+  { img: dsc01656, preloadSrc: dsc01656, caption: "Side by Side" },
+  { img: dsc01633, preloadSrc: dsc01633, caption: "A Day on the Road", objectPosition: '20% center' },
+  { img: dsc02216, preloadSrc: dsc02216, caption: "A Promise Together", objectPosition: '15% center' },
+  { img: dsc02234, preloadSrc: dsc02234, caption: "Under the Old Tree" }
 ];
 
 const criticalExperienceImages = [logoWebp, bibleWebp];
@@ -81,15 +96,27 @@ const carouselSlideVariants = {
 };
 
 export default function App() {
-  const experience = useWeddingExperience();
+  const wedding = useWeddingExperience();
+  const experience = wedding;
   const { identity, opening, schedule, gifts, rsvp, faqs, branding } = experience;
   const [firstName, secondName] = identity.coupleNames.split(/\s*&\s*/);
+  const notes = wedding.notes ?? [];
+  const chapters = [
+    ...chapterTitles.map(([title, subtitle], id) => ({ id, title, subtitle })),
+    ...(notes.length ? [{ id: 5, title: 'Wedding Notes', subtitle: 'Chapter VI' }] : []),
+    { id: notes.length ? 6 : 5, title: 'RSVP', subtitle: notes.length ? 'Chapter VII' : 'Chapter VI' },
+    ...(wedding.closing?.visible === false ? [] : [{ id: notes.length ? 7 : 6, title: 'Thank You', subtitle: notes.length ? 'Chapter VIII' : 'Chapter VII' }]),
+  ];
+  const weddingDetailsSectionIndex = 4;
+  const weddingNotesSectionIndex = notes.length ? 5 : null;
+  const rsvpSectionIndex = notes.length ? 6 : 5;
   const [phase, setPhase] = useState('welcome'); 
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
   const [showCoordinatorMode, setShowCoordinatorMode] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'coordinator');
   const [galleryMode, setGalleryMode] = useState('stack');
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const [expandedNoteId, setExpandedNoteId] = useState(null);
   const [galleryIdleTick, setGalleryIdleTick] = useState(0);
   const [galleryDirection, setGalleryDirection] = useState(1);
   const [galleryScrollLocked, setGalleryScrollLocked] = useState(false);
@@ -257,7 +284,7 @@ export default function App() {
 
     Promise.all(criticalExperienceImages.map(preloadImage)).then(() => {
       if (isCancelled) return;
-      const remainingVerseTime = Math.max(0, 5000 - (Date.now() - startedAt));
+      const remainingVerseTime = Math.max(0, 6500 - (Date.now() - startedAt));
       transitionTimeoutId = window.setTimeout(() => {
         if (!isCancelled) setPhase('curtains');
       }, remainingVerseTime);
@@ -284,7 +311,7 @@ export default function App() {
       });
     }
 
-    setPhase('bible');
+    setPhase(wedding.opening.verse && wedding.opening.citation ? 'bible' : 'curtains');
 
   };
 
@@ -337,7 +364,6 @@ export default function App() {
   const activeGalleryPhoto = galleryPhotos[activeGalleryIndex];
   const isActiveGalleryPhotoLoaded = loadedImageSources.has(activeGalleryPhoto.preloadSrc);
 
-  const isChapterFourActive = activeSection === 3;
 
   const handleRsvpSubmit = async (e) => {
     e.preventDefault();
@@ -433,7 +459,7 @@ export default function App() {
         )}
       </AnimatePresence>
       
-      <audio ref={audioRef} loop src="/bg-music.mp3" preload="auto" />
+      <audio ref={audioRef} loop src={wedding.opening.musicSrc ?? '/bg-music.mp3'} preload="auto" />
 
       <div className="fixed inset-0 pointer-events-none z-50 opacity-[0.035] bg-[radial-gradient(#C48C78_1px,transparent_1px)] [background-size:24px_24px]" />
       <motion.div 
@@ -451,6 +477,15 @@ export default function App() {
             transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-0 z-50 bg-[#36121A] flex flex-col items-center justify-center text-center px-6 overflow-hidden"
           >
+            <img
+              src={welcomeCouple}
+              alt=""
+              aria-hidden="true"
+              fetchPriority="high"
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,13,20,0.66)_0%,rgba(42,13,20,0.72)_48%,rgba(42,13,20,0.8)_100%)]" />
+            <div className="absolute inset-0 bg-[#36121A]/15" />
             <div className="absolute inset-0 pointer-events-none">
               {[...Array(25)].map((_, i) => (
                 <motion.div
@@ -562,11 +597,11 @@ export default function App() {
                 Holy Matrimony
               </span>
               <blockquote className="font-serif italic text-xl md:text-3xl text-[#F3E5E8] leading-relaxed mb-6 drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-                “{opening.verse}”
+                “{wedding.opening.verse}”
               </blockquote>
               <div className="w-16 h-[1px] bg-[#C48C78]/60 mx-auto mb-3" />
               <p className="font-sans text-xs tracking-[0.3em] text-[#D4B8BC] uppercase font-medium">
-                {opening.citation}
+                {wedding.opening.citation}
               </p>
             </motion.div>
 
@@ -759,26 +794,30 @@ export default function App() {
             ))}
           </div>
 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: activeSection === 0 ? 0.13 : 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center"
+          >
+            <picture className="block h-[min(78vw,30rem)] w-[min(78vw,30rem)]">
+              <source srcSet={logoWebp} type="image/webp" />
+              <img src={logo} width="2000" height="2000" alt="" className="h-full w-full object-contain" />
+            </picture>
+          </motion.div>
+
           <motion.div 
             initial="hidden"
             animate={activeSection === 0 ? 'visible' : 'hidden'}
             variants={magicalHeroVariant}
-            className="max-w-4xl mx-auto pt-8 relative z-10 flex flex-col items-center"
+            className="max-w-4xl mx-auto px-2 pt-1 relative z-10 flex flex-col items-center"
           >
-            <motion.div 
-              initial={{ scale: 0, rotate: -20, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="w-24 h-24 md:w-28 md:h-28 mb-5 relative flex items-center justify-center filter drop-shadow-[0_0_25px_rgba(196,140,120,0.6)]"
-            >
-              <img src={logoWebp} width="2000" height="2000" alt={identity.monogramAlt} className="h-full w-full object-contain" />
-            </motion.div>
-
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
-              className="inline-block mb-4 px-6 py-1.5 border-y border-[#C48C78]/40 bg-[#36121A]/40 backdrop-blur-sm rounded-lg"
+              className="inline-block mb-5 px-6 py-1.5 border-y border-[#C48C78]/40 bg-[#36121A]/40 backdrop-blur-sm rounded-lg"
             >
               <p className="font-sans text-[11px] tracking-[0.45em] text-[#C48C78] uppercase font-medium">
                 Together with their families
@@ -789,20 +828,30 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
               transition={{ duration: 1.2, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8"
+              className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-8"
             >
-              <h1 className="m-0 font-serif text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#F3E5E8] font-light drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-                {firstName}
+              <h1 className="mr-20 font-serif text-7xl md:text-7xl lg:text-8xl tracking-tight text-[#D8B497] font-light drop-shadow-[0_3px_16px_rgba(0,0,0,0.45)]">
+                Cloyd
               </h1>
-              <motion.div 
-                animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.1, 1] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                className="font-serif italic text-3xl md:text-5xl text-[#C48C78] font-light"
+              <div
+                role="img"
+                aria-label="and"
+                className="my-0.5 h-12 w-28 md:my-0 md:h-11 md:w-36"
+                style={{
+                  backgroundColor: '#D8B497',
+                  maskImage: `url(${andCalligraphy})`,
+                  WebkitMaskImage: `url(${andCalligraphy})`,
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskPosition: 'center',
+                  WebkitMaskPosition: 'center',
+                  maskSize: 'contain',
+                  WebkitMaskSize: 'contain',
+                }}
               >
-                &amp;
-              </motion.div>
-              <h1 className="m-0 font-serif text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#F3E5E8] font-light drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-                {secondName}
+              </div>
+              <h1 className="ml-20 font-serif text-7xl md:text-7xl lg:text-8xl tracking-tight text-[#D8B497] font-light drop-shadow-[0_3px_16px_rgba(0,0,0,0.45)]">
+                Cyrin
               </h1>
             </motion.div>
 
@@ -810,33 +859,41 @@ export default function App() {
               initial={{ scaleX: 0, opacity: 0 }}
               animate={{ scaleX: 1, opacity: 1 }}
               transition={{ duration: 1, delay: 0.7, ease: "easeOut" }}
-              className="w-24 h-[1px] bg-gradient-to-r from-transparent via-[#C48C78] to-transparent mx-auto my-5" 
+              className="w-24 h-[1px] bg-gradient-to-r from-transparent via-[#C48C78] to-transparent mx-auto my-4" 
             />
 
             <motion.p 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
-              className="font-sans text-xs md:text-sm tracking-[0.35em] uppercase text-[#C48C78] font-semibold"
+              className="font-serif italic text-sm text-[#D4B8BC] mt-10 font-medium"
             >
-              {new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(identity.weddingDate))}
+              With gratefull hearts, we invite you to witness the day we begin our forever.
+              
             </motion.p>
-            <div className="mt-4 flex items-center justify-center gap-4 font-sans text-[#F3E5E8]" aria-label={`${countdown.days} days, ${countdown.hours} hours, ${countdown.minutes} minutes and ${countdown.seconds} seconds until the wedding`}>
-              {Object.entries(countdown).map(([label, value]) => <div key={label} className="min-w-10 text-center"><span className="block text-base font-medium tabular-nums">{String(value).padStart(2, '0')}</span><span className="text-[8px] uppercase tracking-[0.2em] text-[#C48C78]">{label}</span></div>)}
-            </div>
+
+              <motion.p 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
+              className="font-serif italic text-[18px] text-[#D4B8BC] mt-2 font-medium"
+            > 9:00 AM <br/>
+              December 19, 2026
+            </motion.p>
+
             <motion.p 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.9, ease: "easeOut" }}
-              className="font-serif italic text-sm text-[#D4B8BC] mt-2 font-medium"
+              className="font-serif text-sm text-[#D4B8BC] mt-10 font-medium"
             >
-              La Castellana &bull; Negros Occidental
+              SCROLL TO BEGIN
             </motion.p>
           </motion.div>
         </section>
 
         {/* SECTION 1: OUR LOVE STORY */}
-        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-4xl mx-auto overflow-y-auto no-scrollbar py-16">
+        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-start px-6 py-10 md:px-20 md:py-16 max-w-4xl mx-auto overflow-y-auto no-scrollbar">
           <div className="w-full text-center">
             <motion.div 
               initial="hidden"
@@ -850,32 +907,45 @@ export default function App() {
               <div className="w-12 h-[1px] bg-[#C48C78] mx-auto mt-3" />
             </motion.div>
 
-            <div className="relative border-l border-[#C48C78]/40 ml-4 md:ml-24 text-left space-y-10">
-              {timelineEvents.map((item) => (
-                <motion.div 
+            <div className="relative ml-4 space-y-10 text-left md:ml-24">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 left-0 w-px"
+                style={{ background: 'linear-gradient(180deg, rgba(196,140,120,0.08) 0%, rgba(196,140,120,0.58) 20%, rgba(216,180,151,0.72) 50%, rgba(196,140,120,0.58) 80%, rgba(196,140,120,0.08) 100%)' }}
+              />
+              {timelineEvents.map((item, index) => {
+                const storyImage = [dsc01656, dsc02216, dsc02234][index];
+                return (
+                <motion.div
                   key={item.year}
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: false, amount: 0.55 }}
                   variants={{
                     hidden: { opacity: 0, x: -30 },
-                    visible: { 
-                      opacity: 1, 
+                    visible: {
+                      opacity: 1,
                       x: 0,
                       transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
                     }
                   }}
-                  className="relative pl-8 md:pl-10 group"
+                  className="group relative ml-2 overflow-visible rounded-xl md:ml-0"
                 >
-                  <motion.div 
+                  <motion.div
                     whileHover={{ scale: 1.5 }}
-                    className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#C48C78] ring-4 ring-[#36121A] transition-transform duration-300 shadow-[0_0_10px_rgba(196,140,120,0.8)]" 
+                    className="absolute -left-4 top-1.5 w-2.5 h-2.5 rounded-full bg-[#C48C78] ring-4 ring-[#36121A] transition-transform duration-300 shadow-[0_0_10px_rgba(196,140,120,0.8)]"
                   />
-                  <span className="text-xs font-semibold tracking-widest text-[#C48C78] uppercase">{item.year}</span>
-                  <h3 className="text-xl md:text-2xl font-serif font-light text-[#F3E5E8] mt-1 mb-1 group-hover:text-[#C48C78] transition-colors duration-300">{item.title}</h3>
-                  <p className="text-sm text-[#D4B8BC] leading-relaxed">{item.description}</p>
+                  <div className="overflow-hidden rounded-xl border border-[#C48C78]/25 bg-[#2A0D14]/85 shadow-lg">
+                    <img src={storyImage} alt="" aria-hidden="true" loading="lazy" decoding="async" className="aspect-[3/2] w-full object-cover" />
+                    <div className="flex flex-col justify-center px-4 py-4 text-left sm:px-7 sm:py-6">
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#C48C78] sm:text-[10px] sm:tracking-widest">{item.year}</span>
+                  <h3 className="mt-1 mb-1 font-serif text-base font-light leading-snug text-[#F3E5E8] group-hover:text-[#C48C78] sm:text-xl md:text-2xl">{item.title}</h3>
+                  <p className="text-[11px] leading-relaxed text-[#D4B8BC] sm:text-sm">{item.description}</p>
+                    </div>
+                  </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -931,7 +1001,7 @@ export default function App() {
                             <span className="font-sans text-[9px] uppercase tracking-[0.24em] text-[#D4B8BC]">Preparing photograph</span>
                           </div>
                         )}
-                        <picture className="block h-full w-full"><source srcSet={photo.webpSrcSet} sizes="(min-width: 768px) 384px, 92vw" type="image/webp" /><img src={photo.img} width="1200" height="1200" alt={photo.caption} draggable="false" loading="lazy" decoding="async" onLoad={() => setLoadedImageSources((sources) => sources.has(photo.preloadSrc) ? sources : new Set(sources).add(photo.preloadSrc))} className={`relative h-full w-full rounded-[1.35rem] object-cover transition-opacity duration-700 [backface-visibility:hidden] ${isPhotoLoaded ? 'opacity-100' : 'opacity-0'}`} /></picture>
+                        <picture className="block h-full w-full">{photo.webpSrcSet && <source srcSet={photo.webpSrcSet} sizes="(min-width: 768px) 384px, 92vw" type="image/webp" />}<img src={photo.img} width="1200" height="1200" alt={photo.caption} draggable="false" loading="lazy" decoding="async" onLoad={() => setLoadedImageSources((sources) => sources.has(photo.preloadSrc) ? sources : new Set(sources).add(photo.preloadSrc))} className={`relative h-full w-full rounded-[1.35rem] object-cover transition-opacity duration-700 [backface-visibility:hidden] ${isPhotoLoaded ? 'opacity-100' : 'opacity-0'}`} /></picture>
                         {photo.stackPosition === 0 && (
                           <div className="absolute inset-x-2 bottom-2 rounded-b-[1.35rem] bg-gradient-to-t from-[#2A0D14]/90 via-[#2A0D14]/30 to-transparent px-5 pb-5 pt-12">
                             <p className="font-serif text-lg text-[#F3E5E8]">{photo.caption}</p>
@@ -977,13 +1047,13 @@ export default function App() {
                     className="relative w-full max-w-3xl touch-pan-y overscroll-x-none"
                   >
                     <div className="relative overflow-hidden rounded-[1.75rem] border border-[#C48C78]/35 bg-[#451822] p-2 shadow-[0_18px_45px_rgba(0,0,0,0.38)]">
-                      <motion.div key={`previous-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -left-[21%] w-[42%] overflow-hidden rounded-[1.35rem] blur-[1px]">
+                      <motion.div key={`previous-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -left-[16%] w-[32%] overflow-hidden rounded-[1.35rem] blur-[1px] md:-left-[21%] md:w-[42%]">
                         <img src={galleryPhotos[(activeGalleryIndex - 1 + galleryPhotos.length) % galleryPhotos.length].preloadSrc} alt="" decoding="async" className="h-full w-full object-cover" />
                       </motion.div>
-                      <motion.div key={`next-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -right-[21%] w-[42%] overflow-hidden rounded-[1.35rem] blur-[1px]">
+                      <motion.div key={`next-${activeGalleryIndex}`} initial={{ opacity: 0 }} animate={{ opacity: 0.38 }} transition={{ duration: 0.5 }} className="pointer-events-none absolute inset-y-2 -right-[16%] w-[32%] overflow-hidden rounded-[1.35rem] blur-[1px] md:-right-[21%] md:w-[42%]">
                         <img src={galleryPhotos[(activeGalleryIndex + 1) % galleryPhotos.length].preloadSrc} alt="" decoding="async" className="h-full w-full object-cover" />
                       </motion.div>
-                      <div className="relative mx-auto w-[76%] aspect-[4/5] md:aspect-[16/10]">
+                      <div className="relative mx-auto w-[95%] aspect-[4/5] md:w-[76%] md:aspect-[16/10]">
                       <AnimatePresence initial={false} custom={shouldReduceMotion ? 0 : galleryDirection}>
                       <motion.figure
                         key={galleryPhotos[activeGalleryIndex].caption}
@@ -1002,7 +1072,7 @@ export default function App() {
                         className="absolute inset-0 m-0 touch-pan-y overflow-hidden rounded-[1.35rem]"
                       >
                         {!isActiveGalleryPhotoLoaded && <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,#2A0D14,#5A2430,#2A0D14)]"><span className="font-sans text-[9px] uppercase tracking-[0.24em] text-[#D4B8BC]">Preparing photograph</span></div>}
-                        <picture className="block h-full w-full"><source srcSet={activeGalleryPhoto.webpSrcSet} sizes="(min-width: 768px) 720px, 76vw" type="image/webp" /><img src={activeGalleryPhoto.img} width="1200" height="1200" alt={activeGalleryPhoto.caption} decoding="async" onLoad={() => setLoadedImageSources((sources) => sources.has(activeGalleryPhoto.preloadSrc) ? sources : new Set(sources).add(activeGalleryPhoto.preloadSrc))} className={`h-full w-full object-cover transition-opacity duration-700 ${isActiveGalleryPhotoLoaded ? 'opacity-100' : 'opacity-0'}`} /></picture>
+                        <picture className="block h-full w-full">{activeGalleryPhoto.webpSrcSet && <source srcSet={activeGalleryPhoto.webpSrcSet} sizes="(min-width: 768px) 720px, 76vw" type="image/webp" />}<img src={activeGalleryPhoto.img} width="1200" height="1200" alt={activeGalleryPhoto.caption} decoding="async" onLoad={() => setLoadedImageSources((sources) => sources.has(activeGalleryPhoto.preloadSrc) ? sources : new Set(sources).add(activeGalleryPhoto.preloadSrc))} style={{ objectPosition: activeGalleryPhoto.objectPosition ?? 'center' }} className={`h-full w-full object-cover transition-opacity duration-700 ${isActiveGalleryPhotoLoaded ? 'opacity-100' : 'opacity-0'}`} /></picture>
                         <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#2A0D14]/90 to-transparent px-6 pb-6 pt-16 font-serif text-xl text-[#F3E5E8]">{galleryPhotos[activeGalleryIndex].caption}</figcaption>
                       </motion.figure>
                       </AnimatePresence>
@@ -1019,43 +1089,26 @@ export default function App() {
           </div>
         </section>
 
-        {/* SECTION 3: CEREMONY & RECEPTION */}
-        <section className="min-h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-start px-6 py-12 md:h-[100svh] md:max-w-5xl md:justify-center md:px-20 md:py-16 mx-auto">
+        <WeddingEntourage people={wedding.entourage} />
+
+        {/* WEDDING DETAILS */}
+        <section className="min-h-[100svh] w-full snap-start snap-always scroll-mt-6 flex flex-col items-center justify-start px-6 py-12 md:h-[100svh] md:max-w-5xl md:justify-start md:overflow-y-auto md:px-20 md:py-16 md:no-scrollbar mx-auto">
           <div className="w-full">
-            <motion.div 
-              initial="hidden"
-              animate={isChapterFourActive ? 'visible' : 'hidden'}
-              variants={fadeInUp}
-              className="text-center mb-8"
-            >
+            <motion.div initial="hidden" animate={activeSection === weddingDetailsSectionIndex ? 'visible' : 'hidden'} variants={fadeInUp} className="text-center mb-8">
               <span className="text-xs uppercase tracking-[0.4em] text-[#C48C78] font-semibold block mb-1">Join Our Celebration</span>
-              <h2 className="text-3xl md:text-4xl font-light font-serif text-[#F3E5E8]">Ceremony &amp; Reception</h2>
+              <h2 className="text-3xl md:text-4xl font-light font-serif text-[#F3E5E8]">Wedding Details</h2>
               <div className="w-12 h-[1px] bg-[#C48C78] mx-auto mt-3" />
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <motion.div initial="hidden" animate={activeSection === weddingDetailsSectionIndex ? 'visible' : 'hidden'} variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               
-              <motion.div 
-                initial="hidden"
-                animate={isChapterFourActive ? 'visible' : 'hidden'}
-                variants={{
-                  hidden: { opacity: 0, x: -30 },
-                  visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut" } }
-                }}
-                whileHover={{ scale: 1.02 }}
-                className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/70 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300"
-              >
-                <img src={churchVenue} width="386" height="518" alt="Our Lady of Salvation Parish" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-100" />
-                <div className="absolute inset-0 bg-[#16070B]/70" />
-                <div className="relative z-10 flex h-full flex-col items-center drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]">
-                <motion.div 
-                  animate={{ rotate: [0, 5, -5, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="w-10 h-10 rounded-full bg-[#C48C78]/15 flex items-center justify-center mb-3 text-[#C48C78]"
-                >
+              <motion.div whileHover={{ scale: 1.02 }} className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#2A0D14]/85 text-center shadow-xl">
+                <img src={churchVenue} width="392" height="393" alt="Interior of St. Joseph Parish Church" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" />
+                <div className="flex flex-col items-center p-5 sm:p-6">
+                <div className="w-10 h-10 rounded-full bg-[#C48C78]/15 flex items-center justify-center mb-3 text-[#C48C78]">
                   <Calendar className="w-5 h-5" />
-                </motion.div>
-                <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">{schedule.ceremony.title}</h3>
+                </div>
+                <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">The Ceremony</h3>
                 <p className="text-xs font-semibold text-[#C48C78] mb-0.5">{new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(schedule.ceremony.dateTime))}</p>
                 <p className="text-xs text-[#D4B8BC] mb-3">{schedule.ceremony.timeLabel}</p>
                 <p className="text-[11px] font-semibold text-[#F3E5E8] tracking-widest uppercase mb-1">{schedule.ceremony.venue}</p>
@@ -1064,36 +1117,22 @@ export default function App() {
                   href={schedule.ceremony.mapUrl}
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="mt-auto inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#C48C78] hover:text-[#F3E5E8] font-semibold border-b border-[#C48C78] pb-0.5 transition-colors"
+                  className="mt-auto inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#C48C78] hover:text-[#F3E5E8] font-semibold border-b border-[#C48C78] pb-0.5"
                 >
                   <MapPin className="w-4 h-4 text-[#C48C78]" />
-                  <span>View Exact Map Location</span>
+                  <span>View Church Location</span>
                 </a>
                 </div>
               </motion.div>
 
-              <motion.div 
-                initial="hidden"
-                animate={isChapterFourActive ? 'visible' : 'hidden'}
-                variants={{
-                  hidden: { opacity: 0, x: 30 },
-                  visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut" } }
-                }}
-                whileHover={{ scale: 1.02 }}
-                className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/70 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300"
-              >
-                <img src={receptionVenueWebp} width="720" height="540" alt="F and C reception venue" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-100" />
-                <div className="absolute inset-0 bg-[#16070B]/70" />
-                <div className="relative z-10 flex h-full flex-col items-center drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]">
-                <motion.div 
-                  animate={{ rotate: [0, -5, 5, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="w-10 h-10 rounded-full bg-[#C48C78]/15 flex items-center justify-center mb-3 text-[#C48C78]"
-                >
+              <motion.div whileHover={{ scale: 1.02 }} className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#2A0D14]/85 text-center shadow-xl">
+                <picture className="block"><source srcSet={receptionVenueWebp} type="image/webp" /><img src={receptionVenue} width="1333" height="1000" alt="F and C reception venue" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" /></picture>
+                <div className="flex flex-col items-center p-5 sm:p-6">
+                <div className="w-10 h-10 rounded-full bg-[#C48C78]/15 flex items-center justify-center mb-3 text-[#C48C78]">
                   <Clock className="w-5 h-5" />
-                </motion.div>
-                <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">{schedule.reception.title}</h3>
-                <p className="text-xs font-semibold text-[#C48C78] mb-0.5">Immediately Following Ceremony</p>
+                </div>
+                <h3 className="text-xl font-serif font-light text-[#F3E5E8] mb-1">The Reception</h3>
+                <p className="text-xs font-semibold text-[#C48C78] mb-0.5">Following the Ceremony</p>
                 <p className="text-xs text-[#D4B8BC] mb-3">{schedule.reception.timeLabel}</p>
                 <p className="text-[11px] font-semibold text-[#F3E5E8] tracking-widest uppercase mb-1">{schedule.reception.venue}</p>
                 <p className="text-[10px] text-[#D4B8BC] mb-4">{schedule.reception.address}</p>
@@ -1101,75 +1140,108 @@ export default function App() {
                   href={schedule.reception.mapUrl}
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="mt-auto inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#C48C78] hover:text-[#F3E5E8] font-semibold border-b border-[#C48C78] pb-0.5 transition-colors"
+                  className="mt-auto inline-flex items-center space-x-2 text-xs uppercase tracking-widest text-[#C48C78] hover:text-[#F3E5E8] font-semibold border-b border-[#C48C78] pb-0.5"
                 >
                   <MapPin className="w-4 h-4 text-[#C48C78]" />
-                  <span>View Exact Map Location</span>
+                  <span>View Reception Location</span>
                 </a>
                 </div>
               </motion.div>
 
-            </div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              <motion.div 
-                initial="hidden"
-                animate={isChapterFourActive ? 'visible' : 'hidden'}
-                variants={fadeInUp}
-                whileHover={{ scale: 1.02 }}
-                className="rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/50 p-5 text-center shadow-lg transition-all"
-              >
-                <Shirt className="w-6 h-6 text-[#C48C78] mx-auto mb-2" />
-                <h3 className="text-lg font-serif font-light text-[#F3E5E8] mb-1">Dress Code</h3>
-                <p className="text-xs text-[#C48C78] font-medium mb-2">{schedule.dressCode.name}</p>
-                <div className="flex justify-center gap-2 my-3" aria-label="Rose gold and burgundy dress-code palette">
-                  {['#B76E79', '#B06676', '#A75D70', '#9E5268', '#954560', '#8C3655', '#842447', '#800020'].map((color) => (
-                    <span key={color} className="h-5 w-5 rounded-full border border-[#F3E5E8]/30 shadow-md" style={{ backgroundColor: color }} />
-                  ))}
+            <motion.div initial="hidden" animate={activeSection === weddingDetailsSectionIndex ? 'visible' : 'hidden'} variants={fadeInUp} transition={{ delay: 0.15 }} className="grid grid-cols-1 gap-6">
+              <div className="rounded-2xl border border-[#C8A96A]/60 bg-[#F3E5E8] p-5 text-center shadow-lg sm:p-6">
+                <Shirt className="mx-auto mb-2 h-6 w-6 text-[#9B5F59]" aria-hidden="true" />
+                <h3 className="font-serif text-xl font-light text-[#641626]">Attire Guide</h3>
+                <p className="mt-1 font-sans text-[9px] uppercase tracking-[0.24em] text-[#8A5F5E]">A thoughtful palette for our celebration</p>
+                <div className="mt-5 divide-y divide-[#9B6A67]/25">
+                  {[
+                    { title: 'Principal Sponsors', lines: ['Ninang · Floor-length dresses in nude or beige', 'Ninong · Black suit with a black necktie'], colors: ['#D9C2A2', '#BFA078', '#211D1B'], image: principalAttireImage },
+                    { title: 'Guests', lines: ['Ladies · Blush-pink floor-length attire', 'Gentlemen · Black suit with a pink necktie'], colors: ['#D99A9A', '#BE777D', '#211D1B'], image: guestAttireImage },
+                    { title: 'Entourage', lines: ['Bridesmaids · Burgundy floor-length dresses', 'Groomsmen · Black suit with a burgundy necktie'], colors: ['#800020', '#A7475A', '#211D1B'], image: entourageAttireImage },
+                  ].map((guide, index) => {
+                    const figure = <img src={guide.image} alt={`${guide.title} attire illustration`} width="297" height="323" loading="lazy" decoding="async" className="mx-auto max-h-32 w-auto object-contain sm:max-h-36 md:max-h-40" />;
+                    const details = <div className="min-w-0 text-left">
+                      <h4 className="font-serif text-lg text-[#641626] sm:text-xl">{guide.title}</h4>
+                      <ul className="mt-2 space-y-1.5 font-sans text-[11px] leading-relaxed text-[#76504F] sm:text-xs">
+                        {guide.lines.map((line) => <li key={line}>{line}</li>)}
+                      </ul>
+                      <div className="mt-3 flex gap-2" aria-label={`${guide.title} attire color palette`}>
+                        {guide.colors.map((color) => <span key={color} className="h-3.5 w-3.5 rounded-full border border-[#76504F]/30" style={{ backgroundColor: color }} />)}
+                      </div>
+                    </div>;
+                    return <section key={guide.title} className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-center gap-3 px-2 py-4 first:pt-3 last:pb-2 sm:gap-6 sm:px-5 sm:py-5 md:gap-10 md:px-10">
+                      {index % 2 === 0 ? <>{figure}{details}</> : <>{details}{figure}</>}
+                    </section>
+                  })}
                 </div>
-                <p className="text-[11px] text-[#D4B8BC] italic mt-1">{schedule.dressCode.description}</p>
-              </motion.div>
-
-              <motion.div 
-                initial="hidden"
-                animate={isChapterFourActive ? 'visible' : 'hidden'}
-                variants={fadeInUp}
-                whileHover={{ scale: 1.02 }}
-                className="flex flex-col justify-center rounded-2xl border border-[#C8A96A]/60 bg-[#451822]/50 p-5 text-center shadow-lg transition-all"
-              >
-                <Gift className="w-6 h-6 text-[#C48C78] mx-auto mb-2" />
-                <h3 className="text-lg font-serif font-light text-[#F3E5E8] mb-1">{gifts[0]?.title ?? 'Gift Registry'}</h3>
-                <p className="text-xs text-[#D4B8BC] mb-2">{gifts[0]?.description}</p>
-                <p className="text-[11px] font-semibold text-[#C48C78] tracking-wider">{gifts[0]?.details}</p>
-              </motion.div>
-
-            </div>
+              </div>
+            </motion.div>
           </div>
         </section>
 
-        {/* SECTION 4: RSVP */}
-        <section className="h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 md:px-20 max-w-xl mx-auto overflow-y-auto no-scrollbar py-16">
-          <div className="w-full">
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={{
-                hidden: { opacity: 0, scale: 0.92, y: 20 },
-                visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.9, ease: "easeOut" } }
-              }}
-              className="bg-[#451822]/90 border border-[#C48C78]/40 p-8 md:p-10 rounded-3xl shadow-2xl backdrop-blur-md w-full relative overflow-hidden"
-            >
+        {notes.length > 0 && <motion.section
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: activeSection === weddingNotesSectionIndex ? 1 : 0, y: activeSection === weddingNotesSectionIndex ? 0 : 14 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full snap-start snap-always flex flex-col items-center justify-center px-6 py-10 md:min-h-[100svh] md:px-20 md:py-16"
+        >
+          <div className="w-full max-w-2xl text-center">
+            <span className="font-sans text-[9px] uppercase tracking-[0.38em] text-[#C48C78]">A note before the day</span>
+            <h2 className="mt-3 font-serif text-4xl font-light tracking-wide text-[#F3E5E8] md:text-5xl">Wedding Notes</h2>
+            <div className="mx-auto mt-5 flex w-24 items-center justify-center gap-2" aria-hidden="true">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent to-[#C48C78]/70" />
+              <span className="h-1 w-1 rotate-45 bg-[#C48C78]" />
+              <span className="h-px flex-1 bg-gradient-to-l from-transparent to-[#C48C78]/70" />
+            </div>
+            <div className="mt-9 border-t border-[#C48C78]/30 text-left">
+              {notes.map((note, index) => {
+                const isExpanded = expandedNoteId === note.id;
+                const panelId = `wedding-note-${note.id}`;
+                return <article key={note.id} className="border-b border-[#C48C78]/25 px-2 sm:px-3">
+                  <h3 className="m-0">
+                    <button
+                      type="button"
+                      aria-expanded={isExpanded}
+                      aria-controls={panelId}
+                      onClick={() => setExpandedNoteId(isExpanded ? null : note.id)}
+                      className={`flex min-h-[4.5rem] w-full items-center gap-3 py-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C48C78] ${isExpanded ? 'text-[#D8B497]' : 'text-[#F3E5E8] hover:text-[#D8B497]'}`}
+                    >
+                      <span className="w-7 shrink-0 font-sans text-[9px] tracking-[0.14em] text-[#C48C78]/75">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="flex-1 font-serif text-[19px] leading-snug sm:text-[21px]">{note.title}</span>
+                      <ChevronDown aria-hidden="true" className={`h-[17px] w-[17px] shrink-0 text-[#C48C78] transition-transform duration-300 ease-out ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                  </h3>
+                  {note.description && <motion.div
+                    id={panelId}
+                    initial={false}
+                    animate={{ height: isExpanded ? 'auto' : 0, opacity: isExpanded ? 1 : 0 }}
+                    transition={{ duration: shouldReduceMotion ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    aria-hidden={!isExpanded}
+                    className="overflow-hidden"
+                  >
+                    <p className="pb-5 pl-10 pr-8 font-sans text-[13px] leading-[1.8] text-[#D4B8BC]/90 sm:text-sm">{note.description}</p>
+                  </motion.div>}
+                </article>;
+              })}
+            </div>
+          </div>
+        </motion.section>}
+
+        {/* RSVP */}
+        <section className="min-h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 py-16 md:px-20">
+          <div className="mx-auto w-full max-w-xl">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: activeSection === rsvpSectionIndex ? 1 : 0, y: activeSection === rsvpSectionIndex ? 0 : 16 }} transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }} className="bg-[#451822]/90 border border-[#C48C78]/40 p-8 md:p-10 rounded-3xl shadow-2xl backdrop-blur-md w-full relative overflow-hidden">
               <div className="text-center mb-6">
                 <span className="text-xs uppercase tracking-[0.4em] text-[#C48C78] font-semibold block mb-2">Be Our Guest</span>
                 <h3 className="text-3xl font-serif font-light text-[#F3E5E8]">RSVP</h3>
                 <p className="text-xs text-[#D4B8BC] mt-1">Kindly respond on or before {new Intl.DateTimeFormat('en-PH', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(rsvp.deadline))}</p>
               </div>
 
-              <AnimatePresence mode="wait">
+                <AnimatePresence mode="wait">
                 {!rsvpSubmitted ? (
-                  <motion.form 
+                  <motion.form
                     key="rsvp-form"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -1233,17 +1305,14 @@ export default function App() {
                     </div>
 
                     <div className="text-center pt-1">
-                      <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
+                      <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                         type="submit"
                         disabled={isSubmitting}
                         className="w-full bg-[#C48C78] hover:bg-[#b07864] text-[#36121A] py-3 rounded-full text-xs uppercase tracking-[0.3em] font-bold shadow-lg transition-colors flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
                       >
                         {isSubmitting ? (
                           <>
-                            <Loader2 className="w-4 h-4 text-[#36121A] animate-spin" />
-                            <span>Submitting...</span>
+                            <><Loader2 className="w-4 h-4 text-[#36121A] animate-spin" /><span>Submitting...</span></>
                           </>
                         ) : (
                           <>
@@ -1255,14 +1324,8 @@ export default function App() {
                     </div>
                   </motion.form>
                 ) : (
-                  <motion.div 
-                    key="success-message"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="text-center py-8 space-y-4"
-                  >
-                    <CheckCircle2 className="w-14 h-14 text-[#C48C78] mx-auto" />
+                  <motion.div key="success-message" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="text-center py-8 space-y-4">
+                    <CheckCircle2 className="w-14 h-14 text-[#C48C78] mx-auto animate-bounce" />
                     <h4 className="text-2xl font-serif text-[#F3E5E8]">Thank You, {formData.name}!</h4>
                     <p className="text-sm text-[#D4B8BC] max-w-md mx-auto">
                       {formData.attendance === 'yes' 
@@ -1278,7 +1341,7 @@ export default function App() {
                     </button>
                   </motion.div>
                 )}
-              </AnimatePresence>
+                </AnimatePresence>
             </motion.div>
             <div className="mt-8 space-y-3 text-left">
               <h3 className="text-center font-serif text-2xl font-light text-[#F3E5E8]">A Few Helpful Notes</h3>
@@ -1295,6 +1358,18 @@ export default function App() {
             </footer>
           </div>
         </section>
+
+        {/* CLOSING / THANK YOU */}
+        {wedding.closing?.visible !== false && <section className="min-h-[75svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 py-20 text-center">
+          <div className="mx-auto max-w-2xl">
+            <div className="mx-auto mb-6 h-px w-16 bg-[#C48C78]/70" />
+            <p className="font-sans text-[10px] uppercase tracking-[0.35em] text-[#C48C78]">With love and gratitude</p>
+            <h2 className="mt-4 font-serif text-3xl font-light text-[#F3E5E8] md:text-5xl">Thank You</h2>
+            <p className="mt-5 font-serif text-lg italic leading-relaxed text-[#D4B8BC]">{wedding.closing?.message ?? ''}</p>
+            <p className="mt-8 font-serif text-2xl text-[#D8B497]">{wedding.identity.coupleNames}</p>
+            <p className="mt-10 font-sans text-[9px] uppercase tracking-[0.2em] text-[#D4B8BC]/70">Crafted with love by {wedding.branding.companyName}</p>
+          </div>
+        </section>}
 
       </main>
 
