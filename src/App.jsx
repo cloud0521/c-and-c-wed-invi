@@ -803,7 +803,7 @@ export default function App() {
           >
             <picture className="block h-[min(78vw,30rem)] w-[min(78vw,30rem)]">
               <source srcSet={logoWebp} type="image/webp" />
-              <img src={logo} width="2000" height="2000" alt="" className="h-full w-full object-contain" />
+              <img src={logoWebp} width="2000" height="2000" alt="" className="h-full w-full object-contain" />
             </picture>
           </motion.div>
 
