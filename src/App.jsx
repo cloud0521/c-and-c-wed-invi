@@ -98,7 +98,7 @@ const carouselSlideVariants = {
 export default function App() {
   const wedding = useWeddingExperience();
   const experience = wedding;
-  const { identity, opening, schedule, gifts, rsvp, faqs, branding } = experience;
+  const { identity, opening, schedule, gifts, rsvp } = experience;
   const [firstName, secondName] = identity.coupleNames.split(/\s*&\s*/);
   const notes = wedding.notes ?? [];
   const chapters = [
@@ -1343,31 +1343,19 @@ export default function App() {
                 )}
                 </AnimatePresence>
             </motion.div>
-            <div className="mt-8 space-y-3 text-left">
-              <h3 className="text-center font-serif text-2xl font-light text-[#F3E5E8]">A Few Helpful Notes</h3>
-              {faqs.map((faq) => (
-                <details key={faq.id} className="rounded-2xl border border-[#C48C78]/30 bg-[#451822]/55 px-5 py-4">
-                  <summary className="cursor-pointer font-serif text-lg text-[#F3E5E8]">{faq.question}</summary>
-                  <p className="mt-2 text-sm leading-relaxed text-[#D4B8BC]">{faq.answer}</p>
-                </details>
-              ))}
-            </div>
-            <footer className="pb-8 pt-10 text-center">
-              <p className="font-serif italic text-lg text-[#F3E5E8]">Thank you for being part of our story.</p>
-              <p className="mt-3 font-sans text-[9px] uppercase tracking-[0.2em] text-[#C48C78]">{branding.signature}</p>
-            </footer>
           </div>
         </section>
 
         {/* CLOSING / THANK YOU */}
         {wedding.closing?.visible !== false && <section className="min-h-[75svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 py-20 text-center">
           <div className="mx-auto max-w-2xl">
+            <img src={logoWebp} width="2000" height="2000" alt={`${wedding.identity.coupleNames} wedding logo`} loading="lazy" decoding="async" className="mx-auto mb-6 h-36 w-36 object-contain opacity-90 sm:h-44 sm:w-44 md:h-52 md:w-52" />
             <div className="mx-auto mb-6 h-px w-16 bg-[#C48C78]/70" />
             <p className="font-sans text-[10px] uppercase tracking-[0.35em] text-[#C48C78]">With love and gratitude</p>
             <h2 className="mt-4 font-serif text-3xl font-light text-[#F3E5E8] md:text-5xl">Thank You</h2>
             <p className="mt-5 font-serif text-lg italic leading-relaxed text-[#D4B8BC]">{wedding.closing?.message ?? ''}</p>
-            <p className="mt-8 font-serif text-2xl text-[#D8B497]">{wedding.identity.coupleNames}</p>
-            <p className="mt-10 font-sans text-[9px] uppercase tracking-[0.2em] text-[#D4B8BC]/70">Crafted with love by {wedding.branding.companyName}</p>
+            <p className="mt-8 font-great-vibes text-5xl leading-tight text-[#D8B497] sm:text-6xl">{wedding.identity.coupleNames}</p>
+            <a href="https://www.dreamzinvites.asia/" target="_blank" rel="noopener noreferrer" className="mt-10 inline-block font-sans text-[9px] uppercase tracking-[0.2em] text-[#D4B8BC]/70 transition-colors hover:text-[#C48C78]">{wedding.branding.signature}</a>
           </div>
         </section>}
 

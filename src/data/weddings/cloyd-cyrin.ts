@@ -16,8 +16,8 @@ export const cloydCyrinWedding: WeddingExperience = {
     weddingDate: '2026-12-19T09:00:00+08:00',
   },
   branding: {
-    companyName: 'Wedd Invi',
-    signature: 'Crafted with love by Wedd Invi, creating timeless digital wedding experiences.',
+    companyName: 'Dreamz',
+    signature: 'Crafted with love by Dreamz, creating timeless digital wedding experiences.',
   },
   opening: {
     verse: 'I have found the one my soul loves. I held him and would not let him go.',
