@@ -32,6 +32,5 @@ directly to review responses.
 
 ## Wedding content
 
-The canonical wedding data is in `src/data/weddings/cloyd-cyrin.ts`. Update the
-couple, schedule, locations, dress code, gifts, RSVP deadline, FAQs, and brand
-signature there rather than duplicating content in components.
+The wedding data is in `src/data/weddings/cloyd-cyrin.ts`. Update the couple,
+schedule, locations, entourage, notes, RSVP deadline, and brand signature there.

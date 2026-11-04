@@ -10,18 +10,22 @@ import p2Small from './assets/p2-720.webp';
 import p2Large from './assets/p2-1200.webp';
 import p3Small from './assets/p3-720.webp';
 import p3Large from './assets/p3-1200.webp';
-import dsc01656 from './assets/DSC01656.jpg';
-import dsc01633 from './assets/DSC01633.jpg';
-import dsc02216 from './assets/DSC02216.jpg';
-import dsc02234 from './assets/DSC02234.jpg';
-import churchVenue from './assets/st-joseph-parish-interior.png';
-import principalAttireImage from './assets/attire-principal-reference.png';
-import guestAttireImage from './assets/attire-guests.png';
-import entourageAttireImage from './assets/attire-entourage-reference.png';
-import andCalligraphy from './assets/and-calligraphy.png';
-import welcomeCouple from './assets/welcome-couple.png';
-import receptionVenue from './assets/fc-reception.jpg';
-import receptionVenueWebp from './assets/fc-reception-720.webp';
+import dsc01656Small from './assets/dsc01656-720.webp';
+import dsc01656Large from './assets/dsc01656-1200.webp';
+import dsc01633Small from './assets/dsc01633-720.webp';
+import dsc01633Large from './assets/dsc01633-1200.webp';
+import dsc02216Small from './assets/dsc02216-720.webp';
+import dsc02216Large from './assets/dsc02216-1200.webp';
+import dsc02234Small from './assets/dsc02234-720.webp';
+import dsc02234Large from './assets/dsc02234-1200.webp';
+import churchVenue from './assets/st-joseph-parish-interior.webp';
+import principalAttireImage from './assets/attire-principal-reference.webp';
+import guestAttireImage from './assets/attire-guests.webp';
+import entourageAttireImage from './assets/attire-entourage-reference.webp';
+import andCalligraphy from './assets/and-calligraphy.webp';
+import welcomeCouple from './assets/welcome-couple.webp';
+import receptionVenueSmall from './assets/fc-reception-720.webp';
+import receptionVenueLarge from './assets/fc-reception-1200.webp';
 import { submitRsvpToGoogleSheets } from './lib/googleSheets';
 import { useWeddingExperience } from './contexts/WeddingExperienceContext';
 import WeddingEntourage from './components/entourage/WeddingEntourage';
@@ -36,30 +40,36 @@ const chapterTitles = [
 
 const timelineEvents = [
   {
-    year: "Chapter 2.1",
-    title: "High School Days",
-    description: "We crossed paths as schoolmates and officially became a couple, marking the sweet beginning of our journey."
+    year: 'Chapter 2.1',
+    title: 'High School Days',
+    description: 'We crossed paths as schoolmates and officially became a couple, marking the sweet beginning of our journey.',
   },
   {
-    year: "Chapter 2.2",
-    title: "The Separation",
-    description: "Not even a full month had passed before life parted our ways, leading to eight long years of walking separate paths."
+    year: 'Chapter 2.2',
+    title: 'The Separation',
+    description: 'Not even a full month had passed before life parted our ways, leading to eight long years of walking separate paths.',
   },
   {
-    year: "Chapter 2.3",
+    year: 'Chapter 2.3',
     title: "Destiny's Return",
-    description: "Seven years later, destiny brought us back together, proving that what is truly meant to be will always find its way home."
-  }
+    description: 'Seven years later, destiny brought us back together, proving that what is truly meant to be will always find its way home.',
+  },
 ];
 
 const galleryPhotos = [
   { img: p1Small, webpSrcSet: `${p1Small} 720w, ${p1Large} 1200w`, preloadSrc: p1Large, caption: "A Playful Moment" },
   { img: p2Small, webpSrcSet: `${p2Small} 720w, ${p2Large} 1200w`, preloadSrc: p2Large, caption: "Exploring Together" },
   { img: p3Small, webpSrcSet: `${p3Small} 720w, ${p3Large} 1200w`, preloadSrc: p3Large, caption: "By the Sea" },
-  { img: dsc01656, preloadSrc: dsc01656, caption: "Side by Side" },
-  { img: dsc01633, preloadSrc: dsc01633, caption: "A Day on the Road", objectPosition: '20% center' },
-  { img: dsc02216, preloadSrc: dsc02216, caption: "A Promise Together", objectPosition: '15% center' },
-  { img: dsc02234, preloadSrc: dsc02234, caption: "Under the Old Tree" }
+  { img: dsc01656Small, webpSrcSet: `${dsc01656Small} 720w, ${dsc01656Large} 1200w`, preloadSrc: dsc01656Large, caption: "Side by Side" },
+  { img: dsc01633Small, webpSrcSet: `${dsc01633Small} 720w, ${dsc01633Large} 1200w`, preloadSrc: dsc01633Large, caption: "A Day on the Road", objectPosition: '20% center' },
+  { img: dsc02216Small, webpSrcSet: `${dsc02216Small} 720w, ${dsc02216Large} 1200w`, preloadSrc: dsc02216Large, caption: "A Promise Together", objectPosition: '15% center' },
+  { img: dsc02234Small, webpSrcSet: `${dsc02234Small} 720w, ${dsc02234Large} 1200w`, preloadSrc: dsc02234Large, caption: "Under the Old Tree" }
+];
+
+const storyPhotos = [
+  { img: dsc01656Small, webpSrcSet: `${dsc01656Small} 720w, ${dsc01656Large} 1200w` },
+  { img: dsc02216Small, webpSrcSet: `${dsc02216Small} 720w, ${dsc02216Large} 1200w` },
+  { img: dsc02234Small, webpSrcSet: `${dsc02234Small} 720w, ${dsc02234Large} 1200w` },
 ];
 
 const criticalExperienceImages = [logoWebp, bibleWebp];
@@ -94,9 +104,7 @@ const carouselSlideVariants = {
 
 export default function App() {
   const wedding = useWeddingExperience();
-  const experience = wedding;
-  const { identity, opening, schedule, gifts, rsvp } = experience;
-  const [firstName, secondName] = identity.coupleNames.split(/\s*&\s*/);
+  const { identity, schedule, rsvp } = wedding;
   const signatureParts = wedding.branding.signature.split(wedding.branding.companyName);
   const notes = wedding.notes ?? [];
   const chapters = [
@@ -126,7 +134,6 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRsvpFormVisible, setIsRsvpFormVisible] = useState(false);
   const [formData, setFormData] = useState({ names: [''], guests: '1', attendance: 'yes', message: '' });
-  const [timeRemaining, setTimeRemaining] = useState(() => Math.max(0, new Date(identity.weddingDate).getTime() - Date.now()));
 
   const audioRef = useRef(null);
   const containerRef = useRef(null);
@@ -157,23 +164,6 @@ export default function App() {
     duration: Math.random() * 4 + 4,
     delay: Math.random() * 2,
   })), []);
-
-  useEffect(() => {
-    const updateCountdown = () => setTimeRemaining(Math.max(0, new Date(identity.weddingDate).getTime() - Date.now()));
-    updateCountdown();
-    const intervalId = window.setInterval(updateCountdown, 1000);
-    return () => window.clearInterval(intervalId);
-  }, [identity.weddingDate]);
-
-  const countdown = useMemo(() => {
-    const totalSeconds = Math.floor(timeRemaining / 1000);
-    return {
-      days: Math.floor(totalSeconds / 86400),
-      hours: Math.floor((totalSeconds % 86400) / 3600),
-      minutes: Math.floor((totalSeconds % 3600) / 60),
-      seconds: totalSeconds % 60,
-    };
-  }, [timeRemaining]);
 
   useEffect(() => {
     if (galleryMode !== 'stack' || shouldReduceMotion) return undefined;
@@ -848,7 +838,7 @@ export default function App() {
                 style={{ background: 'linear-gradient(180deg, rgba(196,140,120,0.08) 0%, rgba(196,140,120,0.58) 20%, rgba(216,180,151,0.72) 50%, rgba(196,140,120,0.58) 80%, rgba(196,140,120,0.08) 100%)' }}
               />
               {timelineEvents.map((item, index) => {
-                const storyImage = [dsc01656, dsc02216, dsc02234][index];
+                const storyPhoto = storyPhotos[index];
                 return (
                 <motion.div
                   key={item.year}
@@ -870,7 +860,10 @@ export default function App() {
                     className="absolute -left-4 top-1.5 w-2.5 h-2.5 rounded-full bg-[#C48C78] ring-4 ring-[#36121A] transition-transform duration-300 shadow-[0_0_10px_rgba(196,140,120,0.8)]"
                   />
                   <div className="overflow-hidden rounded-xl border border-[#C48C78]/25 bg-[#2A0D14]/85 shadow-lg">
-                    <img src={storyImage} alt="" aria-hidden="true" loading="lazy" decoding="async" className="aspect-[3/2] w-full object-cover" />
+                    <picture className="block">
+                      <source srcSet={storyPhoto.webpSrcSet} sizes="(min-width: 768px) 720px, 92vw" type="image/webp" />
+                      <img src={storyPhoto.img} width="1200" height="800" alt="" aria-hidden="true" loading="lazy" decoding="async" className="aspect-[3/2] w-full object-cover" />
+                    </picture>
                     <div className="flex flex-col justify-center px-4 py-4 text-left sm:px-7 sm:py-6">
                   <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#C48C78] sm:text-[10px] sm:tracking-widest">{item.year}</span>
                   <h3 className="mt-1 mb-1 font-serif text-base font-light leading-snug text-[#F3E5E8] group-hover:text-[#C48C78] sm:text-xl md:text-2xl">{item.title}</h3>
@@ -1060,7 +1053,7 @@ export default function App() {
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.02 }} className="relative overflow-hidden rounded-2xl border border-[#C8A96A]/60 bg-[#2A0D14]/85 text-center shadow-xl">
-                <picture className="block"><source srcSet={receptionVenueWebp} type="image/webp" /><img src={receptionVenue} width="1333" height="1000" alt="F and C reception venue" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" /></picture>
+                <picture className="block"><source srcSet={`${receptionVenueSmall} 720w, ${receptionVenueLarge} 1200w`} sizes="(min-width: 768px) 50vw, 92vw" type="image/webp" /><img src={receptionVenueSmall} width="1200" height="900" alt="F and C reception venue" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" /></picture>
                 <div className="flex flex-col items-center p-5 sm:p-6">
                 <div className="w-10 h-10 rounded-full bg-[#C48C78]/15 flex items-center justify-center mb-3 text-[#C48C78]">
                   <Clock className="w-5 h-5" />

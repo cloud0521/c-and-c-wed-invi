@@ -1,19 +1,9 @@
-import p1 from '../../assets/p1-1200.webp';
-import p2 from '../../assets/p2-1200.webp';
-import p3 from '../../assets/p3-1200.webp';
-import dsc01656 from '../../assets/DSC01656.jpg';
-import dsc01633 from '../../assets/DSC01633.jpg';
-import dsc02216 from '../../assets/DSC02216.jpg';
-import dsc02234 from '../../assets/DSC02234.jpg';
 import type { WeddingExperience } from '../../types/wedding';
 
 export const cloydCyrinWedding: WeddingExperience = {
   identity: {
-    slug: 'cloyd-and-cyrin',
     coupleNames: 'Cloyd & Cyrin',
-    shortNames: 'C & C',
     monogramAlt: 'C and C wedding monogram',
-    weddingDate: '2026-12-19T09:00:00+08:00',
   },
   branding: {
     companyName: 'Dreamz',
@@ -28,10 +18,8 @@ export const cloydCyrinWedding: WeddingExperience = {
     message: 'Thank you for being part of our story and for sharing in the joy of our day.',
     visible: true,
   },
-  templateId: 'elegant-floral',
   schedule: {
     ceremony: {
-      title: 'The Ceremony',
       dateTime: '2026-12-19T09:00:00+08:00',
       timeLabel: '9:00 AM',
       venue: 'St. Joseph Parish Church',
@@ -39,44 +27,12 @@ export const cloydCyrinWedding: WeddingExperience = {
       mapUrl: 'https://www.google.com/maps/place/St.+Joseph+Parish+Church/@10.3869464,123.2175959,18.96z/data=!4m17!1m10!3m9!1s0x33a948da064ec777:0xcbffd508abf6e001!2sF+%26+C+Guest+House!5m2!4m1!1i2!8m2!3d10.3864347!4d123.2201105!16s%2Fg%2F1tfjyd5z!3m5!1s0x33a948d9d14f34c5:0xd70ad6bd0d3780e1!8m2!3d10.3869229!4d123.2171255!16s%2Fg%2F1tfggbr9?entry=ttu&g_ep=EgoyMDI2MTAwNC4wIKXMDSoASAFQAw%3D%3D',
     },
     reception: {
-      title: 'The Reception',
-      dateTime: '2026-12-19T11:00:00+08:00',
       timeLabel: '11:00 AM Onwards',
       venue: 'F & C Guest House',
       address: '6223 Rizal St, Canlaon City, Negros Oriental',
       mapUrl: 'https://www.google.com/maps/search/?api=1&query=F%20%26%20C%20Guest%20House%2C%206223%20Rizal%20St%2C%20Canlaon%20City%2C%20Negros%20Oriental',
     },
-    dressCode: {
-      name: 'Rose Gold & Burgundy',
-      description: 'Kindly wear your attire in rose gold or burgundy tones.',
-      colors: ['#C48C78', '#800020'],
-    },
   },
-  chapters: [
-    {
-      id: 'our-beginning',
-      order: 1,
-      eyebrow: 'Chapter I',
-      title: 'Our Beginning',
-      blocks: [{
-        type: 'timeline',
-        items: [
-          { label: 'Chapter I', title: 'High School Days', description: 'We crossed paths as schoolmates and officially became a couple.' },
-          { label: 'Chapter II', title: 'The Separation', description: 'Life parted our ways, leading to seven long years of separate paths.' },
-          { label: 'Chapter III', title: 'Destiny’s Return', description: 'Seven years later, destiny brought us back together.' },
-        ],
-      }],
-    },
-  ],
-  gallery: [
-    { id: 'playful-moment', src: p1, alt: 'The couple sharing a playful moment', caption: 'A Playful Moment' },
-    { id: 'exploring-together', src: p2, alt: 'The couple exploring together', caption: 'Exploring Together' },
-    { id: 'by-the-sea', src: p3, alt: 'The couple by the sea', caption: 'By the Sea' },
-    { id: 'side-by-side', src: dsc01656, alt: 'The couple walking together on a country road', caption: 'Side by Side' },
-    { id: 'day-on-the-road', src: dsc01633, alt: 'The couple holding hands on a quiet road', caption: 'A Day on the Road' },
-    { id: 'promise-together', src: dsc02216, alt: 'The couple dressed for their wedding portrait', caption: 'A Promise Together' },
-    { id: 'old-tree', src: dsc02234, alt: 'The couple beneath a great old tree', caption: 'Under the Old Tree' },
-  ],
   entourage: [
     { role: 'Parent of the Groom', name: 'Carino B. Argando' },
     { role: 'Parent of the Groom', name: 'Johna D. Argando' },
@@ -118,12 +74,6 @@ export const cloydCyrinWedding: WeddingExperience = {
     { role: 'Usherette', name: 'Virriza Diotay' },
     { role: 'Official Priest', name: 'Rev. Fr. Joeven L. Santisteban' },
   ],
-  gifts: [{
-    id: 'monetary-gift',
-    title: 'Your presence is our greatest gift',
-    description: 'Monetary contributions are warmly appreciated.',
-    details: 'GCash or bank transfer details are available upon request.',
-  }],
   notes: [
     {
       id: 'ceremony-arrival-time',
@@ -158,20 +108,5 @@ export const cloydCyrinWedding: WeddingExperience = {
   ],
   rsvp: {
     deadline: '2026-11-29T23:59:59+08:00',
-    allowGuestMessage: true,
-    questions: [
-      { id: 'attendance', label: 'Attendance', type: 'select', required: true, options: [{ label: 'Joyfully accept', value: 'accepted' }, { label: 'Regretfully decline', value: 'declined' }] },
-      { id: 'guest-count', label: 'Number of guests', type: 'select', required: true, options: [{ label: '1 person', value: '1' }, { label: '2 persons', value: '2' }, { label: '3 persons', value: '3' }] },
-      { id: 'message', label: 'Wishes for the couple', type: 'textarea' },
-    ],
-    confirmation: {
-      accepted: 'We have recorded your response and cannot wait to celebrate with you.',
-      declined: 'Thank you for letting us know. You will be missed on our special day.',
-    },
   },
-  faqs: [
-    { id: 'arrival', question: 'When should I arrive?', answer: 'Please arrive at least 30 minutes before the ceremony so everyone may be seated comfortably.' },
-    { id: 'children', question: 'May we bring children?', answer: 'Please follow the guest count written on your invitation. Contact the couple if you need help.' },
-    { id: 'photos', question: 'May we take photos?', answer: 'Yes—after the ceremony begins, please keep phones silent and avoid blocking the official photographers.' },
-  ],
 };

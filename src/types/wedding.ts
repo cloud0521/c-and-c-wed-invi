@@ -1,56 +1,7 @@
-import type { StoryChapter } from './content';
-import type { RSVPConfig } from './rsvp';
-
-export interface EventDetails {
-  title: string;
-  dateTime: string;
-  timeLabel: string;
-  venue: string;
-  address: string;
-  mapUrl: string;
-}
-
-export interface GalleryItem {
-  id: string;
-  src: string;
-  alt: string;
-  caption?: string;
-  focalPoint?: string;
-}
-
-export interface GiftOption {
-  id: string;
-  title: string;
-  description: string;
-  details?: string;
-}
-
-export interface FAQItem {
-  id: string;
-  question: string;
-  answer: string;
-}
-
-export interface WeddingNote {
-  id: string;
-  title: string;
-  description?: string;
-  icon?: string;
-}
-
-export interface EntourageMember {
-  id: string;
-  name: string;
-  role: string;
-}
-
 export interface WeddingExperience {
   identity: {
-    slug: string;
     coupleNames: string;
-    shortNames: string;
     monogramAlt: string;
-    weddingDate: string;
   };
   branding: {
     companyName: string;
@@ -61,22 +12,35 @@ export interface WeddingExperience {
     citation?: string;
     musicSrc?: string;
   };
-  closing?: { message: string; visible?: boolean };
-  templateId: string;
+  closing?: {
+    message: string;
+    visible?: boolean;
+  };
   schedule: {
-    ceremony: EventDetails;
-    reception: EventDetails;
-    dressCode: {
-      name: string;
-      description: string;
-      colors: string[];
+    ceremony: {
+      dateTime: string;
+      timeLabel: string;
+      venue: string;
+      address: string;
+      mapUrl: string;
+    };
+    reception: {
+      timeLabel: string;
+      venue: string;
+      address: string;
+      mapUrl: string;
     };
   };
-  chapters: StoryChapter[];
-  gallery: GalleryItem[];
-  entourage: EntourageMember[];
-  gifts: GiftOption[];
-  notes?: WeddingNote[];
-  rsvp: RSVPConfig;
-  faqs: FAQItem[];
+  entourage: Array<{
+    name: string;
+    role: string;
+  }>;
+  notes?: Array<{
+    id: string;
+    title: string;
+    description: string;
+  }>;
+  rsvp: {
+    deadline: string;
+  };
 }

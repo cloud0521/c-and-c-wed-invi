@@ -1,13 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
-import { AppShell } from './app/AppShell'
+import { WeddingExperienceProvider } from './contexts/WeddingExperienceContext'
+import { cloydCyrinWedding } from './data/weddings/cloyd-cyrin'
 import './styles.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AppShell>
+    <WeddingExperienceProvider experience={cloydCyrinWedding}>
       <App />
-    </AppShell>
+    </WeddingExperienceProvider>
   </React.StrictMode>,
 )
