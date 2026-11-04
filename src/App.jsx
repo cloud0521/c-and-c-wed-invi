@@ -46,7 +46,7 @@ const timelineEvents = [
   {
     year: "Chapter 2.2",
     title: "The Separation",
-    description: "Not even a full month had passed before life parted our ways, leading to seven long years of walking separate paths."
+    description: "Not even a full month had passed before life parted our ways, leading to eight long years of walking separate paths."
   },
   {
     year: "Chapter 2.3",
@@ -100,6 +100,7 @@ export default function App() {
   const experience = wedding;
   const { identity, opening, schedule, gifts, rsvp } = experience;
   const [firstName, secondName] = identity.coupleNames.split(/\s*&\s*/);
+  const signatureParts = wedding.branding.signature.split(wedding.branding.companyName);
   const notes = wedding.notes ?? [];
   const chapters = [
     ...chapterTitles.map(([title, subtitle], id) => ({ id, title, subtitle })),
@@ -1355,7 +1356,11 @@ export default function App() {
             <h2 className="mt-4 font-serif text-3xl font-light text-[#F3E5E8] md:text-5xl">Thank You</h2>
             <p className="mt-5 font-serif text-lg italic leading-relaxed text-[#D4B8BC]">{wedding.closing?.message ?? ''}</p>
             <p className="mt-8 font-great-vibes text-5xl leading-tight text-[#D8B497] sm:text-6xl">{wedding.identity.coupleNames}</p>
-            <a href="https://www.dreamzinvites.asia/" target="_blank" rel="noopener noreferrer" className="mt-10 inline-block font-sans text-[9px] uppercase tracking-[0.2em] text-[#D4B8BC]/70 transition-colors hover:text-[#C48C78]">{wedding.branding.signature}</a>
+            <p className="mt-10 font-sans text-[9px] uppercase tracking-[0.2em] text-[#D4B8BC]/70">
+              {signatureParts[0]}
+              <a href="https://www.dreamzinvites.asia/" target="_blank" rel="noopener noreferrer" className="underline decoration-[#C48C78]/50 underline-offset-4 transition-colors hover:text-[#C48C78] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C48C78]">{wedding.branding.companyName}</a>
+              {signatureParts.slice(1).join(wedding.branding.companyName)}
+            </p>
           </div>
         </section>}
 
