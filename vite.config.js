@@ -10,7 +10,6 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) return 'react';
           if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion-dom')) return 'motion';
-          if (id.includes('node_modules/@supabase')) return 'supabase';
           return undefined;
         },
       },

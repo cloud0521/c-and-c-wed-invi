@@ -1,6 +1,6 @@
 # Cloyd & Cyrin — Digital Wedding Invitation
 
-A React, Vite, Tailwind CSS, Framer Motion, and Supabase wedding experience.
+A React, Vite, Tailwind CSS, and Framer Motion wedding experience.
 
 ## Local development
 
@@ -20,22 +20,15 @@ npm run build
 npm run preview
 ```
 
-## Supabase setup
+## RSVP Google Sheets setup
 
-1. Create a Supabase project.
-2. For a new database, run `supabase/migrations/20260806_create_rsvp_dashboard.sql` in the SQL editor. If the RSVP tables already exist, run `supabase/migrations/20260806_add_secure_admin_configuration.sql` instead.
-3. In the SQL editor, configure a unique administrator password of at least 12 characters:
-
-```sql
-select public.configure_invitation_admin('replace-with-a-long-unique-password'::text);
-```
-
-4. Copy `.env.example` to `.env.local` and provide the project URL and publishable key.
-5. Never commit `.env.local` or the administrator password.
-
-Guests can only insert RSVP records. The dashboard read operation validates the
-administrator password inside a security-definer database function; raw password
-values are never stored.
+The RSVP form posts to the Google Apps Script web app bound to the wedding
+spreadsheet. The public deployment URL is configured in `src/lib/googleSheets.js`
+and `.env.example`. Deploy the Apps Script to execute as the sheet owner and
+allow guest submissions. The script appends submission time, the submitted
+names, response, message, and guest count to the `Responses` tab. Keep the Sheet
+itself private; the web app only accepts RSVP submissions. Use the spreadsheet
+directly to review responses.
 
 ## Wedding content
 

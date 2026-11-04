@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Calendar, MapPin, Clock, Shirt, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, Send, Loader2 } from 'lucide-react';
 
@@ -15,19 +15,16 @@ import dsc01633 from './assets/DSC01633.jpg';
 import dsc02216 from './assets/DSC02216.jpg';
 import dsc02234 from './assets/DSC02234.jpg';
 import churchVenue from './assets/st-joseph-parish-interior.png';
-import principalAttireImage from './assets/attire-principal.png';
+import principalAttireImage from './assets/attire-principal-reference.png';
 import guestAttireImage from './assets/attire-guests.png';
-import entourageAttireImage from './assets/attire-entourage.png';
+import entourageAttireImage from './assets/attire-entourage-reference.png';
 import andCalligraphy from './assets/and-calligraphy.png';
 import welcomeCouple from './assets/welcome-couple.png';
 import receptionVenue from './assets/fc-reception.jpg';
 import receptionVenueWebp from './assets/fc-reception-720.webp';
-import CoordinatorMode from './components/dashboard/CoordinatorMode';
-import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { submitRsvpToGoogleSheets } from './lib/googleSheets';
 import { useWeddingExperience } from './contexts/WeddingExperienceContext';
 import WeddingEntourage from './components/entourage/WeddingEntourage';
-
-const RSVPDashboard = lazy(() => import('./components/dashboard/RSVPDashboard'));
 
 const chapterTitles = [
   ['The Invitation', 'Chapter I'],
@@ -111,29 +108,24 @@ export default function App() {
   const weddingDetailsSectionIndex = 4;
   const weddingNotesSectionIndex = notes.length ? 5 : null;
   const rsvpSectionIndex = notes.length ? 6 : 5;
+  const rsvpDeadlineLabel = new Intl.DateTimeFormat('en-PH', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(rsvp.deadline));
   const [phase, setPhase] = useState('welcome'); 
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeSection, setActiveSection] = useState(0);
-  const [showCoordinatorMode, setShowCoordinatorMode] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'coordinator');
   const [galleryMode, setGalleryMode] = useState('stack');
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [expandedNoteId, setExpandedNoteId] = useState(null);
   const [galleryIdleTick, setGalleryIdleTick] = useState(0);
   const [galleryDirection, setGalleryDirection] = useState(1);
   const [galleryScrollLocked, setGalleryScrollLocked] = useState(false);
-  const [isAdminPasswordOpen, setIsAdminPasswordOpen] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
-  const [adminPasswordError, setAdminPasswordError] = useState('');
-  const [isValidatingAdmin, setIsValidatingAdmin] = useState(false);
-  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
-  const [dashboardRows, setDashboardRows] = useState([]);
   const [loadedImageCount, setLoadedImageCount] = useState(0);
   const [loadedImageSources, setLoadedImageSources] = useState(() => new Set());
   
   // RSVP Form States
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ name: '', guests: '1', attendance: 'yes', message: '' });
+  const [isRsvpFormVisible, setIsRsvpFormVisible] = useState(false);
+  const [formData, setFormData] = useState({ names: [''], guests: '1', attendance: 'yes', message: '' });
   const [timeRemaining, setTimeRemaining] = useState(() => Math.max(0, new Date(identity.weddingDate).getTime() - Date.now()));
 
   const audioRef = useRef(null);
@@ -146,6 +138,7 @@ export default function App() {
     typeof navigator !== 'undefined' && /FBAN|FBAV|Messenger/i.test(navigator.userAgent)
   ), []);
   const canSwipeGallery = !shouldReduceMotion && !isMessengerInAppBrowser;
+
   const bibleParticles = useMemo(() => Array.from({ length: 12 }, () => ({
     size: Math.random() * 3 + 2,
     left: `${40 + Math.random() * 20}%`,
@@ -368,97 +361,37 @@ export default function App() {
 
   const handleRsvpSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
-
-    if (formData.name.trim().toLowerCase() === 'wed-invi-admin') {
-      setAdminPasswordError('');
-      setIsAdminPasswordOpen(true);
-      return;
-    }
+    const guestNames = formData.names.slice(0, Number(formData.guests)).map((name) => name.trim());
+    if (guestNames.some((name) => !name)) return;
 
     setIsSubmitting(true);
 
     try {
-      if (!supabase) throw new Error('Supabase is not configured.');
-      const { error } = await supabase.from('rsvp_submissions').insert({
-        full_name: formData.name.trim(),
-        attendance: formData.attendance,
-        guest_count: Number(formData.guests),
-        message: formData.message.trim() || null,
+      await submitRsvpToGoogleSheets({
+        submittedAt: new Date().toISOString(),
+        name: guestNames.join(', '),
+        names: guestNames,
+        role: '',
+        response: formData.attendance === 'yes' ? 'Joyfully accepts' : 'Regretfully declines',
+        note: formData.message.trim(),
+        guestCount: Number(formData.guests),
       });
-      if (error) throw error;
       setRsvpSubmitted(true);
     } catch (error) {
       console.error('Error submitting RSVP:', error);
-      alert(isSupabaseConfigured
-        ? 'There was an error saving your RSVP. Please try again after the Supabase migration is installed.'
-        : 'RSVP is not configured for this deployment yet.');
+      alert('We could not send your RSVP. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleSubmitAnotherRsvp = () => {
-    setFormData({ name: '', guests: '1', attendance: 'yes', message: '' });
+    setFormData({ names: [''], guests: '1', attendance: 'yes', message: '' });
     setRsvpSubmitted(false);
-  };
-
-  const handleAdminPasswordSubmit = async (event) => {
-    event.preventDefault();
-    setIsValidatingAdmin(true);
-    setAdminPasswordError('');
-
-    try {
-      if (!supabase) throw new Error('Supabase is not configured.');
-      const { data, error } = await supabase.rpc('get_rsvp_dashboard', {
-        p_username: 'wed-invi-admin',
-        p_password: adminPassword,
-      });
-
-      if (error) {
-        const isMissingDashboardFunction = error.code === 'PGRST202' || error.message?.includes('get_rsvp_dashboard');
-        const isMissingCryptoExtension = error.message?.includes('function crypt');
-        setAdminPasswordError(
-          isMissingCryptoExtension
-            ? 'Dashboard security needs its one-time Supabase function update.'
-            : isMissingDashboardFunction
-            ? 'Dashboard setup is incomplete. Run the supplied Supabase migration once, then try again.'
-            : 'Incorrect password. Please try again.',
-        );
-        return;
-      }
-
-      setDashboardRows(data ?? []);
-      setAdminPassword('');
-      setIsAdminPasswordOpen(false);
-      setIsAdminDashboardOpen(true);
-    } catch (error) {
-      console.error('Error opening RSVP dashboard:', error);
-      setAdminPasswordError(isSupabaseConfigured
-        ? 'Dashboard connection failed. Check your connection and try again.'
-        : 'This deployment is missing its Supabase configuration.');
-    } finally {
-      setIsValidatingAdmin(false);
-    }
   };
 
   return (
     <div className="bg-[#36121A] text-[#F3E5E8] font-serif selection:bg-[#C48C78]/30 selection:text-[#36121A] h-[100svh] w-screen overflow-hidden relative antialiased flex flex-col">
-      {showCoordinatorMode && <CoordinatorMode onClose={() => setShowCoordinatorMode(false)} />}
-      {isAdminDashboardOpen && <Suspense fallback={null}><RSVPDashboard rows={dashboardRows} onClose={() => setIsAdminDashboardOpen(false)} /></Suspense>}
-      <AnimatePresence>
-        {isAdminPasswordOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[75] flex items-center justify-center bg-[#16070B]/80 p-6 backdrop-blur-sm">
-            <motion.form role="dialog" aria-modal="true" aria-labelledby="admin-access-title" initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} onSubmit={handleAdminPasswordSubmit} className="w-full max-w-sm rounded-3xl border border-[#C8A96A]/45 bg-[#451822] p-7 shadow-2xl">
-              <p className="font-sans text-[10px] uppercase tracking-[0.3em] text-[#C8A96A]">Recognizing invitation...</p>
-              <h2 id="admin-access-title" className="mt-3 font-serif text-3xl font-light text-[#F3E5E8]">Admin access</h2>
-              <label htmlFor="admin-password" className="mt-6 block font-sans text-[10px] uppercase tracking-[0.2em] text-[#D4B8BC]">Password</label><input id="admin-password" autoFocus required autoComplete="current-password" type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} className="mt-2 w-full rounded-xl border border-[#C8A96A]/35 bg-[#2A0D14] px-4 py-3 font-serif text-lg text-[#F3E5E8] outline-none" />
-              {adminPasswordError && <p className="mt-3 text-sm text-[#F3B5AD]">{adminPasswordError}</p>}
-              <div className="mt-6 flex gap-3"><button type="button" onClick={() => setIsAdminPasswordOpen(false)} className="flex-1 rounded-full border border-[#C8A96A]/35 px-4 py-3 font-sans text-[10px] uppercase tracking-[0.2em] text-[#F3E5E8]">Cancel</button><button type="submit" disabled={isValidatingAdmin} className="flex-1 rounded-full bg-[#C8A96A] px-4 py-3 font-sans text-[10px] uppercase tracking-[0.2em] text-[#2A0D14] disabled:opacity-60">{isValidatingAdmin ? 'Checking...' : 'Continue'}</button></div>
-            </motion.form>
-          </motion.div>
-        )}
-      </AnimatePresence>
       
       <audio ref={audioRef} loop src={wedding.opening.musicSrc ?? '/bg-music.mp3'} preload="auto" />
 
@@ -1158,11 +1091,11 @@ export default function App() {
                 <p className="mt-1 font-sans text-[9px] uppercase tracking-[0.24em] text-[#8A5F5E]">A thoughtful palette for our celebration</p>
                 <div className="mt-5 divide-y divide-[#9B6A67]/25">
                   {[
-                    { title: 'Principal Sponsors', lines: ['Ninang · Floor-length dresses in nude or beige', 'Ninong · Black suit with a black necktie'], colors: ['#D9C2A2', '#BFA078', '#211D1B'], image: principalAttireImage },
-                    { title: 'Guests', lines: ['Ladies · Blush-pink floor-length attire', 'Gentlemen · Black suit with a pink necktie'], colors: ['#D99A9A', '#BE777D', '#211D1B'], image: guestAttireImage },
-                    { title: 'Entourage', lines: ['Bridesmaids · Burgundy floor-length dresses', 'Groomsmen · Black suit with a burgundy necktie'], colors: ['#800020', '#A7475A', '#211D1B'], image: entourageAttireImage },
+                    { title: 'Principal Sponsors', lines: ['Ninang · Formal gown or dress in nude or beige', 'Ninong · Beige barong with black pants'], colors: ['#E8D6C1', '#C8A77B', '#211D1B'], image: principalAttireImage },
+                    { title: 'Guests', lines: ['Ladies · Formal dresses in rose gold or burgundy', 'Gentlemen · Semi-formal or smart-casual attire in rose gold or burgundy'], colors: ['#C48C78', '#A7475A', '#800020'], image: guestAttireImage },
+                    { title: 'Entourage', lines: ['Ladies · Formal gowns or dresses in burgundy', 'Gentlemen · Burgundy barong with black pants'], colors: ['#800020', '#A7475A', '#211D1B'], image: entourageAttireImage },
                   ].map((guide, index) => {
-                    const figure = <img src={guide.image} alt={`${guide.title} attire illustration`} width="297" height="323" loading="lazy" decoding="async" className="mx-auto max-h-32 w-auto object-contain sm:max-h-36 md:max-h-40" />;
+                    const figure = <img src={guide.image} alt={`${guide.title} attire illustration`} width="320" height="338" loading="lazy" decoding="async" className="mx-auto max-h-32 w-auto object-contain sm:max-h-36 md:max-h-40" />;
                     const details = <div className="min-w-0 text-left">
                       <h4 className="font-serif text-lg text-[#641626] sm:text-xl">{guide.title}</h4>
                       <ul className="mt-2 space-y-1.5 font-sans text-[11px] leading-relaxed text-[#76504F] sm:text-xs">
@@ -1234,10 +1167,54 @@ export default function App() {
         <section className="min-h-[100svh] w-full snap-start snap-always flex flex-col items-center justify-center px-6 py-16 md:px-20">
           <div className="mx-auto w-full max-w-xl">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: activeSection === rsvpSectionIndex ? 1 : 0, y: activeSection === rsvpSectionIndex ? 0 : 16 }} transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }} className="bg-[#451822]/90 border border-[#C48C78]/40 p-8 md:p-10 rounded-3xl shadow-2xl backdrop-blur-md w-full relative overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                {!isRsvpFormVisible ? (
+                  <motion.div
+                    key="rsvp-reminders"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: shouldReduceMotion ? 0 : 0.28 }}
+                  >
+                    <header className="mb-7 text-center">
+                      <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.32em] text-[#D88A81]">Reminders before making RSVP</span>
+                      <h3 className="mt-3 font-serif text-3xl font-light text-[#F3E5E8]">A kind note before you reply</h3>
+                    </header>
+                    <div className="rounded-2xl border border-[#C48C78]/25 bg-[#2A0D14]/45 px-5 py-5 text-center sm:px-7">
+                      <Calendar className="mx-auto h-5 w-5 text-[#C48C78]" aria-hidden="true" />
+                      <p className="mt-3 font-sans text-[9px] font-semibold uppercase tracking-[0.25em] text-[#D4B8BC]">Please respond by</p>
+                      <p className="mt-1 font-serif text-2xl text-[#E5B99E]">{rsvpDeadlineLabel}</p>
+                      <p className="mt-2 font-serif text-sm leading-relaxed text-[#D4B8BC]">Kindly send us your response on or before this date.</p>
+                      <div className="mx-auto my-5 h-px w-14 bg-[#C48C78]/45" aria-hidden="true" />
+                      <p className="font-sans text-[9px] font-semibold uppercase tracking-[0.25em] text-[#D88A81]">Guest count reminder</p>
+                      <p className="mt-2 font-serif text-base leading-relaxed text-[#E8D4D3] sm:text-lg">
+                        Please RSVP for no more than the number of guests the couple has specified for your invitation. We are unable to accommodate additional guests. Thank you for helping us prepare a comfortable celebration for everyone.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsRsvpFormVisible(true)}
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#C48C78] px-6 py-3.5 font-sans text-[10px] font-bold uppercase tracking-[0.25em] text-[#36121A] shadow-lg transition-colors hover:bg-[#D5A28F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C48C78]"
+                    >
+                      Continue to RSVP
+                      <ChevronRight aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="rsvp-form-view"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: shouldReduceMotion ? 0 : 0.28 }}
+                  >
+                    <div className="mb-4 flex justify-end">
+                      <button type="button" onClick={() => setIsRsvpFormVisible(false)} className="font-sans text-[9px] uppercase tracking-[0.18em] text-[#D4B8BC] underline decoration-[#C48C78]/50 underline-offset-4 transition-colors hover:text-[#F3E5E8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C48C78]">Review reminders</button>
+                    </div>
               <div className="text-center mb-6">
                 <span className="text-xs uppercase tracking-[0.4em] text-[#C48C78] font-semibold block mb-2">Be Our Guest</span>
                 <h3 className="text-3xl font-serif font-light text-[#F3E5E8]">RSVP</h3>
-                <p className="text-xs text-[#D4B8BC] mt-1">Kindly respond on or before {new Intl.DateTimeFormat('en-PH', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date(rsvp.deadline))}</p>
+                <p className="text-xs text-[#D4B8BC] mt-1">Kindly respond on or before {rsvpDeadlineLabel}</p>
               </div>
 
                 <AnimatePresence mode="wait">
@@ -1251,46 +1228,64 @@ export default function App() {
                     className="space-y-4"
                   >
                     <div>
-                      <label htmlFor="rsvp-name" className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Full Name</label>
-                      <input 
-                        id="rsvp-name"
-                        autoComplete="name"
-                        type="text" 
-                        required
-                        placeholder="Enter your full name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        className="w-full bg-[#2A0D14] border border-[#C48C78]/50 rounded-xl px-4 py-2.5 text-sm text-[#F3E5E8] placeholder-[#D4B8BC]/40 focus:outline-none focus:border-[#C48C78] transition-colors"
-                      />
+                      <label htmlFor="rsvp-guests" className="mb-1 block font-sans text-xs font-semibold uppercase tracking-widest text-[#C48C78]">Number of Guests</label>
+                      <select
+                        id="rsvp-guests"
+                        value={formData.guests}
+                        onChange={(event) => {
+                          const guestCount = Number(event.target.value);
+                          const guests = event.target.value;
+                          setFormData((current) => ({
+                            ...current,
+                            guests,
+                            names: Array.from({ length: guestCount }, (_, index) => current.names[index] ?? ''),
+                          }));
+                        }}
+                        className="w-full rounded-xl border border-[#C48C78]/50 bg-[#2A0D14] px-4 py-2.5 text-sm text-[#F3E5E8] transition-colors focus:border-[#C48C78] focus:outline-none"
+                      >
+                        <option value="1" className="bg-[#2A0D14]">1 Person</option>
+                        <option value="2" className="bg-[#2A0D14]">2 Persons</option>
+                        <option value="3" className="bg-[#2A0D14]">3 Persons</option>
+                      </select>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="rsvp-attendance" className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Attendance</label>
-                        <select 
-                          id="rsvp-attendance"
-                          value={formData.attendance}
-                          onChange={(e) => setFormData({...formData, attendance: e.target.value})}
-                          className="w-full bg-[#2A0D14] border border-[#C48C78]/50 rounded-xl px-4 py-2.5 text-sm text-[#F3E5E8] focus:outline-none focus:border-[#C48C78] transition-colors"
-                        >
-                          <option value="yes" className="bg-[#2A0D14]">Joyfully Accept</option>
-                          <option value="no" className="bg-[#2A0D14]">Regretfully Decline</option>
-                        </select>
-                      </div>
+                    <div className="space-y-3">
+                      <p className="mb-1 block font-sans text-xs font-semibold uppercase tracking-widest text-[#C48C78]">Guest Names</p>
+                      {Array.from({ length: Number(formData.guests) }, (_, index) => (
+                        <div key={`rsvp-guest-${index + 1}`}>
+                          <label htmlFor={`rsvp-name-${index + 1}`} className="mb-1 block font-sans text-[11px] uppercase tracking-wider text-[#D4B8BC]">Guest {index + 1} Full Name</label>
+                          <input
+                            id={`rsvp-name-${index + 1}`}
+                            autoComplete={index === 0 ? 'name' : 'off'}
+                            type="text"
+                            required
+                            maxLength={120}
+                            placeholder={`Enter guest ${index + 1}'s full name`}
+                            value={formData.names[index] ?? ''}
+                            onChange={(event) => {
+                              const name = event.target.value;
+                              setFormData((current) => ({
+                                ...current,
+                                names: current.names.map((currentName, nameIndex) => nameIndex === index ? name : currentName),
+                              }));
+                            }}
+                            className="w-full rounded-xl border border-[#C48C78]/50 bg-[#2A0D14] px-4 py-2.5 text-sm text-[#F3E5E8] placeholder-[#D4B8BC]/40 transition-colors focus:border-[#C48C78] focus:outline-none"
+                          />
+                        </div>
+                      ))}
+                    </div>
 
-                      <div>
-                        <label htmlFor="rsvp-guests" className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Number of Guests</label>
-                        <select 
-                          id="rsvp-guests"
-                          value={formData.guests}
-                          onChange={(e) => setFormData({...formData, guests: e.target.value})}
-                          className="w-full bg-[#2A0D14] border border-[#C48C78]/50 rounded-xl px-4 py-2.5 text-sm text-[#F3E5E8] focus:outline-none focus:border-[#C48C78] transition-colors"
-                        >
-                          <option value="1" className="bg-[#2A0D14]">1 Person</option>
-                          <option value="2" className="bg-[#2A0D14]">2 Persons</option>
-                          <option value="3" className="bg-[#2A0D14]">3 Persons</option>
-                        </select>
-                      </div>
+                    <div>
+                      <label htmlFor="rsvp-attendance" className="block text-xs uppercase tracking-widest text-[#C48C78] mb-1 font-semibold">Attendance</label>
+                      <select 
+                        id="rsvp-attendance"
+                        value={formData.attendance}
+                        onChange={(e) => setFormData({...formData, attendance: e.target.value})}
+                        className="w-full bg-[#2A0D14] border border-[#C48C78]/50 rounded-xl px-4 py-2.5 text-sm text-[#F3E5E8] focus:outline-none focus:border-[#C48C78] transition-colors"
+                      >
+                        <option value="yes" className="bg-[#2A0D14]">Joyfully Accept</option>
+                        <option value="no" className="bg-[#2A0D14]">Regretfully Decline</option>
+                      </select>
                     </div>
 
                     <div>
@@ -1327,7 +1322,7 @@ export default function App() {
                 ) : (
                   <motion.div key="success-message" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="text-center py-8 space-y-4">
                     <CheckCircle2 className="w-14 h-14 text-[#C48C78] mx-auto animate-bounce" />
-                    <h4 className="text-2xl font-serif text-[#F3E5E8]">Thank You, {formData.name}!</h4>
+                    <h4 className="text-2xl font-serif text-[#F3E5E8]">Thank You, {formData.names[0]}!</h4>
                     <p className="text-sm text-[#D4B8BC] max-w-md mx-auto">
                       {formData.attendance === 'yes' 
                         ? "We have successfully recorded your response. We can't wait to celebrate our special day with you!"
@@ -1343,6 +1338,9 @@ export default function App() {
                   </motion.div>
                 )}
                 </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </div>
         </section>

@@ -39,6 +39,11 @@ export default function WeddingEntourage({ people = [] }) {
         </header>
 
         <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2 md:gap-x-16">
+          <SectionGroup title="Parents of the Groom" people={byRole('Parent of the Groom')} />
+          <SectionGroup title="Parents of the Bride" people={byRole('Parent of the Bride')} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2 md:gap-x-16">
           <SectionGroup title="Maid of Honor" people={byRole('Maid of Honor')} />
           <SectionGroup title="Best Man" people={byRole('Best Man')} />
         </div>
@@ -74,7 +79,11 @@ export default function WeddingEntourage({ people = [] }) {
 
         <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2 md:gap-x-16">
           <SectionGroup title="Master of Ceremony" people={byRole('Master of Ceremony')} />
-          <SectionGroup title="Father" people={byRole('Father')} />
+          <SectionGroup title="Usherettes" people={byRole('Usherette')} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2 md:gap-x-16">
+          <SectionGroup title="Official Priest" people={byRole('Official Priest')} />
         </div>
       </div>
     </div>
