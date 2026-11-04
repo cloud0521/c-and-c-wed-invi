@@ -406,7 +406,7 @@ export default function App() {
               alt=""
               aria-hidden="true"
               fetchPriority="high"
-              className="absolute inset-0 h-full w-full object-cover object-center"
+              className="absolute inset-0 h-full w-full object-cover object-center md:object-[center_20%]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,13,20,0.66)_0%,rgba(42,13,20,0.72)_48%,rgba(42,13,20,0.8)_100%)]" />
             <div className="absolute inset-0 bg-[#36121A]/15" />
