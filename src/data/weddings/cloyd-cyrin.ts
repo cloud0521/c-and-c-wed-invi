@@ -50,7 +50,7 @@ export const cloydCyrinWedding: WeddingExperience = {
     { role: 'Groomsman', name: 'Kurt Adrian Mendania' },
     { role: 'Groomsman', name: 'Ezekiel Mendania' },
     { role: 'Groomsman', name: 'Jason Client Pagador' },
-    { role: 'CANDLE', name: 'Mr. & Mrs. Charlie Perez' },
+    { role: 'CANDLE', name: 'Mr. Charlie Perez' },
     { role: 'CANDLE', name: 'Mrs. Tiffany Perez' },
     { role: 'CORD', name: 'Mr. Carl John Argando' },
     { role: 'CORD', name: 'Mrs. Charmie Argando' },
